@@ -1,35 +1,32 @@
 import React from 'react';
-import { Drawer, List, ListItem, ListItemText, ListItemButton } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Drawer, List, ListItem, ListItemText } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 const Sidebar: React.FC = () => {
   return (
-    <Drawer variant="permanent" sx={{ width: 240 }}>
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: 240,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: { width: 150, boxSizing: 'border-box', zIndex: 1000 }, 
+      }}
+    >
       <List>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/dashboard">
-            <ListItemText primary="Dashboard" />
-          </ListItemButton>
+        <ListItem component={Link} to="/dashboard">
+          <ListItemText primary="Dashboard" />
         </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/tasks">
-            <ListItemText primary="Tasks" />
-          </ListItemButton>
+        <ListItem component={Link} to="/tasks">
+          <ListItemText primary="Tasks" />
         </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/reports">
-            <ListItemText primary="Reports" />
-          </ListItemButton>
+        <ListItem component={Link} to="/reports">
+          <ListItemText primary="Reports" />
         </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/profile">
-            <ListItemText primary="Profile" />
-          </ListItemButton>
+        <ListItem component={Link} to="/profile">
+          <ListItemText primary="Profile" />
         </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/admin">
-            <ListItemText primary="Admin" />
-          </ListItemButton>
+        <ListItem component={Link} to="/admin">
+          <ListItemText primary="Admin" />
         </ListItem>
       </List>
     </Drawer>

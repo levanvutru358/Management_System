@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button } from '@mui/material';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
@@ -14,9 +14,9 @@ const Header: React.FC = () => {
 
   return (
     <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Task Management
+      <Toolbar sx={{ pl: { xs: 0, sm: 20 } }}> 
+        <Typography variant="h6" sx={{ flexGrow: 2 }}>
+          Task Management System
         </Typography>
         <Button color="inherit" onClick={handleLogout}>
           Logout

@@ -10,7 +10,7 @@ const Dashboard: React.FC = () => {
       <Header />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         <Sidebar />
-        <Container sx={{ ml: '240px', mt: 2 }}>
+        <Container sx={{ ml: '5px', mt: 2 }}>
           <Typography variant="h4">Dashboard</Typography>
           <Typography>Welcome to the Task Management System!</Typography>
         </Container>

@@ -10,7 +10,7 @@ const Admin: React.FC = () => {
       <Header />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         <Sidebar />
-        <Container sx={{ ml: '240px', mt: 2 }}>
+        <Container sx={{ ml: '5px', mt: 2 }}>
           <Typography variant="h4">Admin</Typography>
           <Typography>Admin controls will be displayed here.</Typography>
         </Container>
