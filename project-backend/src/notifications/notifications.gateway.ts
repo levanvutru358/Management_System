@@ -3,7 +3,7 @@ import { Socket } from "socket.io";
 import { Server } from "socket.io";
 
 @WebSocketGateway({ cors: true})
-export class NotificationsGateway implements OnGatewayConnection{
+export class NotificationsGateway implements OnGatewayConnection {
     @WebSocketServer()
     server: Server    
 

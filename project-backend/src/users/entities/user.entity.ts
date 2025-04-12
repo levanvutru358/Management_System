@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Task } from '../../tasks/entities/task.entity';
+import { Comment } from '../../tasks/entities/comment.entity';
+import { Team } from 'src/teams/entities/team.entity';
 
 @Entity()
 export class User {
@@ -22,4 +25,13 @@ export class User {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @OneToMany(() => Task, (task) => task.user)
+  tasks: Task[];
+
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments: Comment[];
+
+  @OneToMany(() => Team, (team) => team.createdBy, { eager: true })
+  teams: Team[];
 }

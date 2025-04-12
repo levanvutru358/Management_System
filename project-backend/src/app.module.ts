@@ -1,6 +1,6 @@
-// backend/src/app.module.ts
-import { Module } from '@nestjs/common';
+import { ConfigurableModuleBuilder, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -8,12 +8,20 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { AdminModule } from './admin/admin.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { AppController } from './app.controller';
 import { User } from './users/entities/user.entity';
 import { Task } from './tasks/entities/task.entity';
-import { AppController } from './app.controller'; // Thêm import
+import { Event } from './calendar/entities/event.entity';
+import { Notification } from './notifications/entities/notification.entity';
+import { Comment } from './tasks/entities/comment.entity';
+import { MailModule } from './mail/mail.module';
+import { ConfigModule } from '@nestjs/config';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
@@ -21,8 +29,12 @@ import { AppController } from './app.controller'; // Thêm import
       username: 'tru123',
       password: 'tru12345',
       database: 'task_manager',
-      entities: [User, Task],
+      entities: [User, Task, Event,Comment,Notification], 
       synchronize: true,
+    }),
+    ConfigModule.forRoot({
+      isGlobal: true, 
+      envFilePath: '.env', 
     }),
     AuthModule,
     UsersModule,
@@ -31,7 +43,10 @@ import { AppController } from './app.controller'; // Thêm import
     ReportsModule,
     IntegrationsModule,
     AdminModule,
+    CalendarModule,
+    MailModule,
+    TeamsModule,
   ],
-  controllers: [AppController], // Thêm AppController
+  controllers: [AppController],
 })
 export class AppModule {}
