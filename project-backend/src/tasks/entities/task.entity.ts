@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Comment } from './comment.entity';
+import { Event } from '../../calendar/entities/event.entity';
 
 @Entity()
 export class Task {
@@ -8,21 +11,27 @@ export class Task {
   @Column()
   title: string;
 
-  @Column()
+  @Column({ nullable: true })
   description: string;
 
-  @Column()
+  @Column({ default: 'Todo' })
   status: string;
 
-  @Column({ type: 'date', nullable: true })
-  dueDate: string;
-
-  @Column()
+  @Column({ default: 'medium' })
   priority: string;
 
-  @Column()
-  userId: number;
+  @Column({ type: 'timestamp', nullable: true })
+  deadline: Date;
+
+  @ManyToOne(() => User, (user) => user.tasks)
+  user: User;
 
   @Column({ nullable: true })
   assignedUserId: number;
+
+  @OneToMany(() => Comment, (comment) => comment.task)
+  comments: Comment[];
+
+  @OneToMany(() => Event, (event) => event.task)
+  events: Event[];
 }

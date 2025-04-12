@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { TasksService } from '../tasks/tasks.service';
-import { UsersService } from '../users/users.service'; // Thêm UsersService
+import { UsersService } from '../users/users.service';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class IntegrationsService {
   constructor(
     private readonly tasksService: TasksService,
-    private readonly usersService: UsersService, // Inject UsersService
+    private readonly usersService: UsersService,
   ) {}
 
   async syncCalendar(taskId: number) {
@@ -19,13 +19,12 @@ export class IntegrationsService {
   async sendEmailReminder(taskId: number) {
     const task = await this.tasksService.findOne(taskId);
 
-    // Lấy email của user liên quan (ví dụ: người được gán task)
-    let recipientEmail = 'recipient@example.com'; // Giá trị mặc định
+    let recipientEmail = 'cao101361@donga.edu.vn'; 
     if (task.assignedUserId) {
       const assignedUser = await this.usersService.findById(task.assignedUserId);
       recipientEmail = assignedUser.email;
-    } else if (task.userId) {
-      const creator = await this.usersService.findById(task.userId);
+    } else if (task.user) {
+      const creator = await this.usersService.findById(task.user.id);
       recipientEmail = creator.email;
     }
 
@@ -39,9 +38,9 @@ export class IntegrationsService {
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: recipientEmail, // Sử dụng email lấy từ user
+      to: recipientEmail,
       subject: `Reminder: Task "${task.title}"`,
-      text: `Task "${task.title}" is due on ${task.dueDate}.`,
+      text: `Task "${task.title}" is due on ${task.deadline}.`,
     };
 
     await transporter.sendMail(mailOptions);

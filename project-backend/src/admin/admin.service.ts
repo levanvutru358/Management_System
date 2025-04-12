@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { TasksService } from '../tasks/tasks.service';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AdminService {
@@ -25,7 +26,7 @@ export class AdminService {
     return this.tasksService.findAllSystem();
   }
 
-  async deleteTask(id: number) {
-    return this.tasksService.remove(id);
+  async deleteTask(id: number, user: User): Promise<void> {
+    return this.tasksService.remove(id, user);
   }
 }

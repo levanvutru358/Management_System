@@ -16,26 +16,30 @@ export class TasksController {
 
   @Post()
   create(@GetUser() user: User, @Body() createTaskDto: CreateTaskDto) {
-    return this.tasksService.create({ ...createTaskDto, userId: user.id });
+    return this.tasksService.create(createTaskDto, user);
   }
 
   @Get()
   findAll(@GetUser() user: User) {
-    return this.tasksService.findAll(user.id);
+    return this.tasksService.findAll(user);
   }
 
   @Put(':id')
   @UseGuards(TasksPermissionsGuard)
-  @SetMetadata('requireEdit', true) // Yêu cầu quyền chỉnh sửa
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto, @GetUser() user: User) {
-    return this.tasksService.update(+id, updateTaskDto);
+  @SetMetadata('requireEdit', true)
+  update(
+    @Param('id') id: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @GetUser() user: User,
+  ) {
+    return this.tasksService.update(+id, updateTaskDto, user);
   }
 
   @Delete(':id')
   @UseGuards(TasksPermissionsGuard)
-  @SetMetadata('requireEdit', true) // Yêu cầu quyền chỉnh sửa
-  remove(@Param('id') id: string) {
-    return this.tasksService.remove(+id);
+  @SetMetadata('requireEdit', true)
+  remove(@Param('id') id: string, @GetUser() user: User) {
+    return this.tasksService.remove(+id, user);
   }
 
   @Get('search')
@@ -45,19 +49,23 @@ export class TasksController {
 
   @Post(':id/assign')
   @UseGuards(TasksPermissionsGuard)
-  @SetMetadata('requireEdit', true) // Yêu cầu quyền chỉnh sửa
+  @SetMetadata('requireEdit', true)
   assign(@Param('id') id: string, @Body() assignTaskDto: AssignTaskDto) {
     return this.tasksService.assignTask(+id, assignTaskDto);
   }
 
   @Post(':id/comments')
-  @UseGuards(TasksPermissionsGuard) // Chỉ cần quyền truy cập
-  addComment(@Param('id') id: string, @Body('content') content: string, @GetUser() user: User) {
+  @UseGuards(TasksPermissionsGuard)
+  addComment(
+    @Param('id') id: string,
+    @Body('content') content: string,
+    @GetUser() user: User,
+  ) {
     return this.tasksService.addComment(+id, user.id, content);
   }
 
   @Get(':id/comments')
-  @UseGuards(TasksPermissionsGuard) // Chỉ cần quyền truy cập
+  @UseGuards(TasksPermissionsGuard)
   getComments(@Param('id') id: string) {
     return this.tasksService.getComments(+id);
   }
