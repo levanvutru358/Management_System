@@ -11,6 +11,6 @@ export class NotificationsController {
 
   @Post('status/:taskId')
   notifyStatusUpdate(@Param('taskId') taskId: string, @GetUser() user: User) {
-    return this.notificationsService.notifyStatusUpdate(+taskId, user.id);
+    return this.notificationsService.notifyTaskStatusUpdate(+taskId, user.id);
   }
 }
