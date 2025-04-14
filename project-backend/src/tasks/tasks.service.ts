@@ -68,7 +68,7 @@ export class TasksService {
     const next48Hours = new Date(now.getTime() + 48 * 60 * 60 * 1000);
     return this.tasksRepository.find({
       where: {
-        deadline: Between(now, next48Hours),
+        dueDate: Between(now, next48Hours),
       },
       relations: ['user'],
     });
@@ -76,7 +76,7 @@ export class TasksService {
 
   async findAllWithDeadline(): Promise<Task[]> {
     return this.tasksRepository.find({
-      where: { deadline: Not(IsNull()) },
+      where: { dueDate: Not(IsNull()) },
       relations: ['user'], // Changed from 'assignee' to 'user' for consistency
     });
   }
@@ -118,7 +118,7 @@ export class TasksService {
       todo: tasks.filter((t) => t.status === 'Todo').length, // Match case with entity default
       inProgress: tasks.filter((t) => t.status === 'in-progress').length,
       done: tasks.filter((t) => t.status === 'done').length,
-      overdue: tasks.filter((t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== 'done').length,
+      overdue: tasks.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length,
     };
   }
 

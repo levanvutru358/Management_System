@@ -21,7 +21,7 @@ export class Task {
   priority: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  deadline: Date;
+  dueDate: Date;
 
   @ManyToOne(() => User, (user) => user.tasks)
   user: User;
@@ -32,6 +32,6 @@ export class Task {
   @OneToMany(() => Comment, (comment) => comment.task)
   comments: Comment[];
 
-  @OneToMany(() => Event, (event) => event.task)
+  @OneToMany(() => Event, (event) => event.task, { cascade: true })
   events: Event[];
 }

@@ -53,7 +53,7 @@ export class NotificationsService {
     try {
       const tasks = await this.tasksService.findAllDueSoon();
       for (const task of tasks) {
-        const message = `⏰ Reminder: Task "${task.title}" is due on ${task.deadline}`;
+        const message = `⏰ Reminder: Task "${task.title}" is due on ${task.dueDate}`;
         this.logger.log(`Creating reminder notification: ${message}`);
         await this.create({ userId: task.user.id, message });
       }

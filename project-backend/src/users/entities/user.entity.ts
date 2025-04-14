@@ -27,7 +27,10 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
-  @OneToMany(() => Event, (event) => event.user)
+  @Column({ default: false })
+  isEmailConfirmed: boolean;
+
+  @OneToMany(() => Event, (event) => event.user, { cascade: true })
   events: Event[];
 
   @OneToMany(() => Task, (task) => task.user)
