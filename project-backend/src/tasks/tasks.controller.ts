@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -8,6 +21,7 @@ import { TasksPermissionsGuard } from './tasks-permissions.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../users/entities/user.entity';
 import { SetMetadata } from '@nestjs/common';
+import { Attachment } from './entities/attachment.entity';
 
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
@@ -27,7 +41,7 @@ export class TasksController {
   @Put(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true) // Yêu cầu quyền chỉnh sửa
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto, @GetUser() user: User) {
+  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
     return this.tasksService.update(+id, updateTaskDto);
   }
 
@@ -52,7 +66,11 @@ export class TasksController {
 
   @Post(':id/comments')
   @UseGuards(TasksPermissionsGuard) // Chỉ cần quyền truy cập
-  addComment(@Param('id') id: string, @Body('content') content: string, @GetUser() user: User) {
+  addComment(
+    @Param('id') id: string,
+    @Body('content') content: string,
+    @GetUser() user: User,
+  ) {
     return this.tasksService.addComment(+id, user.id, content);
   }
 
@@ -65,5 +83,24 @@ export class TasksController {
   @Get('stats')
   getStats(@GetUser() user: User) {
     return this.tasksService.getStats(user.id);
+  }
+
+  // Chức năng tải lên tệp đính kèm
+  @Post(':id/attachments')
+  @UseGuards(TasksPermissionsGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAttachment(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<Attachment> {
+    console.log('Uploaded file:', file);
+    return this.tasksService.uploadAttachment(+id, file);
+  }
+
+  // Chức năng lấy danh sách tệp đính kèm
+  @Get(':id/attachments')
+  @UseGuards(TasksPermissionsGuard)
+  async getAttachments(@Param('id') id: string): Promise<Attachment[]> {
+    return this.tasksService.getAttachments(+id);
   }
 }

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TasksService } from './tasks.service';
 
@@ -21,8 +26,11 @@ export class TasksPermissionsGuard implements CanActivate {
     }
 
     // Kiểm tra quyền chỉnh sửa (nếu cần)
-    const requireEdit = this.reflector.get<boolean>('requireEdit', context.getHandler());
-    
+    const requireEdit = this.reflector.get<boolean>(
+      'requireEdit',
+      context.getHandler(),
+    );
+
     // Kiểm tra quyền truy cập
     this.tasksService.checkPermission(task, user.id, requireEdit);
 

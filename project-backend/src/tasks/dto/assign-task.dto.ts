@@ -1,3 +1,3 @@
 export class AssignTaskDto {
-    assignedUserId: number;
-  }
+  assignedUserId: number;
+}

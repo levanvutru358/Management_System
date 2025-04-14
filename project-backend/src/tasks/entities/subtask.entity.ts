@@ -1,19 +1,19 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
-export class Comment {
+export class Subtask {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id: number;
 
   @Column()
-  taskId!: number;
+  taskId: number;
 
   @Column()
-  userId!: number;
+  title: string;
 
-  @Column()
-  content!: string;
+  @Column({ default: false })
+  completed: boolean;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt!: Date;
+  createdAt: Date;
 }

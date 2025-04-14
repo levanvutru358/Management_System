@@ -15,6 +15,11 @@ export class UsersController {
     return this.usersService.findById(user.id);
   }
 
+  @Get()
+  getAllUsers() {
+    return this.usersService.findAll();
+  }
+
   @Put('me')
   updateProfile(@GetUser() user: User, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(user.id, updateUserDto);
