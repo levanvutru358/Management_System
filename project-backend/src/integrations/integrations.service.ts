@@ -40,7 +40,7 @@ export class IntegrationsService {
       from: process.env.EMAIL_USER,
       to: recipientEmail,
       subject: `Reminder: Task "${task.title}"`,
-      text: `Task "${task.title}" is due on ${task.deadline}.`,
+      text: `Task "${task.title}" is due on ${task.dueDate}.`,
     };
 
     await transporter.sendMail(mailOptions);

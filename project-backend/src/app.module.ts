@@ -15,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TeamsModule } from './teams/teams.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { Module } from '@nestjs/common';
+import { Team } from './teams/entities/team.entity';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { Module } from '@nestjs/common';
       username: 'tru123',
       password: 'tru12345',
       database: 'task_manager',
-      entities: [User, Task ,Comment, Notification], 
+      entities: [User, Task ,Comment, Team], 
       synchronize: true,
     }),
     MailerModule.forRoot({

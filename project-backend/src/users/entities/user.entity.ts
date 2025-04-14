@@ -32,6 +32,6 @@ export class User {
   @OneToMany(() => Comment, (comment) => comment.user)
   comments: Comment[];
 
-  @OneToMany(() => Team, (team) => team.createdBy, { eager: true })
+  @OneToMany(() => Team, (team) => team.createdBy)
   teams: Team[];
 }
