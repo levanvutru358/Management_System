@@ -67,23 +67,23 @@ export class TeamsService {
     });
   }
 
-  async getMemberCount(teamId: number): Promise<number> {
-    const count = await this.teamMemberRepository.count({ where: { team: { id: teamId } } });
-    if (count === 0) throw new NotFoundException('No members found for this team');
-    return count;
+  async getNumberMembers(teamId: number): Promise<number> {
+    const numberMember = await this.teamMemberRepository.count({ where: { team: { id: teamId } } });
+    if (numberMember === 0) throw new NotFoundException('No members found for this team');
+    return numberMember;
   }
 
-  async findAllMember(): Promise<TeamMember[]> {
+  async findAllMembers(): Promise<TeamMember[]> {
     const members = await this.teamMemberRepository.find({ relations: ['user', 'team'] });
     return members;
   }
 
-  async findAll(): Promise<Team[]> {
+  async findAllTeams(): Promise<Team[]> {
     const teams = await  this.teamRepository.find({ relations: ['createdBy', 'members'] });
     return teams;
   }
 
-  async findOne(id: number): Promise<Team | null> {
+  async findOneTeam(id: number): Promise<Team | null> {
     const team = await this.teamRepository.findOne({ where: { id }, relations: ['createdBy', 'members'] });
     if (!team) throw new NotFoundException('Team not found');
     return team;
@@ -95,7 +95,7 @@ export class TeamsService {
     return memnber;
   }
 
-  async update(teamId: number, updateTeamDto: UpdateTeamDto, userId: number): Promise<Team> {
+  async updateTeam(teamId: number, updateTeamDto: UpdateTeamDto, userId: number): Promise<Team> {
     const team = await this.teamRepository.findOne({ where: { id: teamId }, relations: ['createdBy']});
     if (!team) throw new NotFoundException('Team not found');
 
@@ -146,7 +146,7 @@ export class TeamsService {
   }
 
     
-  async remove(teamId: number, userId: number): Promise<void> { 
+  async removeTeam(teamId: number, userId: number): Promise<void> { 
     const team = await this.teamRepository.findOne({ where: { id: teamId }, relations: ['createdBy']});
     if (!team) throw new NotFoundException('Team not found');
 

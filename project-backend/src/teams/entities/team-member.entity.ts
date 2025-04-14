@@ -13,6 +13,6 @@ export class TeamMember {
   @OneToOne(() => User, (user) => user.id)
   user: User;
 
-  @Column({ enum: ['manager', 'member'], default: 'member' })
-  role: string;
+  @Column({ type: 'enum', enum: ['manager', 'member'], default: 'member' })
+  role: 'manager' | 'member';
 }
