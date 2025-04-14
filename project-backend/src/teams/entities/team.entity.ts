@@ -12,7 +12,7 @@ export class Team {
     @Column({ nullable: true })
     description: string;
 
-    @ManyToOne(() => User, (user) => user.teams)
+    @ManyToOne(() => User, (user) => user.id, { eager: true })
     createdBy: User;
 
     @CreateDateColumn()

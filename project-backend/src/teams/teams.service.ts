@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,6 +8,7 @@ import { TeamMember } from './entities/team-member.entity';
 import { User } from 'src/users/entities/user.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 import { InviteMemberDto } from './dto/invite-member.dto';
+import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 
 @Injectable()
 export class TeamsService {
@@ -66,19 +67,128 @@ export class TeamsService {
     });
   }
 
-  findAll() {
-    return `This action returns all teams`;
+  async getMemberCount(teamId: number): Promise<number> {
+    const count = await this.teamMemberRepository.count({ where: { team: { id: teamId } } });
+    if (count === 0) throw new NotFoundException('No members found for this team');
+    return count;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} team`;
+  async findAllMember(): Promise<TeamMember[]> {
+    const members = await this.teamMemberRepository.find({ relations: ['user', 'team'] });
+    return members;
   }
 
-  update(id: number, updateTeamDto: UpdateTeamDto) {
-    return `This action updates a #${id} team`;
+  async findAll(): Promise<Team[]> {
+    const teams = await  this.teamRepository.find({ relations: ['createdBy', 'members'] });
+    return teams;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} team`;
+  async findOne(id: number): Promise<Team | null> {
+    const team = await this.teamRepository.findOne({ where: { id }, relations: ['createdBy', 'members'] });
+    if (!team) throw new NotFoundException('Team not found');
+    return team;
   }
-}
+
+  async findOneMember(id: number): Promise<TeamMember | null> {
+    const memnber = await this.teamMemberRepository.findOne({ where: { id }, relations: ['user', 'team'] });
+    if (!memnber) throw new NotFoundException('Member not found');
+    return memnber;
+  }
+
+  async update(teamId: number, updateTeamDto: UpdateTeamDto, userId: number): Promise<Team> {
+    const team = await this.teamRepository.findOne({ where: { id: teamId }, relations: ['createdBy']});
+    if (!team) throw new NotFoundException('Team not found');
+
+    if (team.createdBy.id != userId) {
+      throw new ForbiddenException('You are not allowed to update this team');
+    }
+
+    if (updateTeamDto.name) {
+      team.name = updateTeamDto.name;
+    }
+    if (updateTeamDto.description) {
+      team.description = updateTeamDto.description;
+    }
+
+    const updatedTeam = await this.teamRepository.save(team);
+    return updatedTeam;
+  }
+
+  async updateMember(teamId: number, memberId: number, UpdateTeamMemberDto: UpdateTeamMemberDto, userId: number): Promise<TeamMember> {
+    const teamMember = await this.teamMemberRepository.findOne(
+      { where: 
+        { 
+          team: { id: teamId }, 
+          user: { id: memberId } 
+        }, 
+        relations: ['team', 'team.createdBy']
+      }
+    );
+    if (!teamMember) throw new NotFoundException('Member not found');
+
+    const currentUser = await this.teamMemberRepository.findOne(
+      { 
+        where: 
+        { 
+          team: { id: teamId }, 
+          user: { id: memberId } 
+        }, 
+        relations: ['team', 'team.createdBy'] 
+      }
+    );
+    if (!currentUser || currentUser.role !== 'manager' && teamMember.team.createdBy.id !== userId) {
+      throw new ForbiddenException('You are not allowed to update this team member');
+    }
+
+    teamMember.role = UpdateTeamMemberDto.role;
+    const updatedTeamMember = await this.teamMemberRepository.save(teamMember);
+    return updatedTeamMember;
+  }
+
+    
+  async remove(teamId: number, userId: number): Promise<void> { 
+    const team = await this.teamRepository.findOne({ where: { id: teamId }, relations: ['createdBy']});
+    if (!team) throw new NotFoundException('Team not found');
+
+    if (team.createdBy.id != userId) {
+      throw new ForbiddenException('You are not allowed to remove this team');
+    }
+    
+    await this.teamMemberRepository.delete({ team: { id: teamId } });
+    // if (!removeAllMembers) throw new NotFoundException('No members found for this team');
+    await this.teamRepository.delete(teamId);
+  }
+
+  async removeMember(teamId: number, memberId: number, userId: number): Promise<void> {
+    const teamMember = await this.teamMemberRepository.findOne(
+      { where: 
+        { 
+          team: { id: teamId }, 
+          user: { id: memberId } 
+        }, 
+        relations: ['team', 'team.createdBy']
+      }
+    );
+    if (!teamMember) throw new NotFoundException('Member not found');
+
+    const currentUser = await this.teamMemberRepository.findOne(
+      { 
+        where: 
+        { 
+          team: { id: teamId }, 
+          user: { id: memberId } 
+        }, 
+        relations: ['team', 'team.createdBy'] 
+      }
+    );
+    if (!currentUser || currentUser.role !== 'manager' && teamMember.team.createdBy.id !== userId) {
+      throw new ForbiddenException('You are not allowed to remove this team member');
+    }
+
+    if (teamMember.role == 'manager') {
+      throw new ForbiddenException('You cannot remove a manager from the team');
+    }
+    
+    await this.teamMemberRepository.delete(teamMember.id);
+  }
+} 
