@@ -7,10 +7,10 @@ export class TeamMember {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Team, (team) => team.id)
+  @ManyToOne(() => Team, (team) => team.members, { cascade: false })
   team: Team;
 
-  @OneToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, { cascade: false })
   user: User;
 
   @Column({ type: 'enum', enum: ['manager', 'member'], default: 'member' })

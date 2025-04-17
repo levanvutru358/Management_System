@@ -1,9 +1,18 @@
-import { User } from "src/users/entities/user.entity";
-import { TeamMember } from "../entities/team-member.entity";
+// src/teams/dto/create-team.dto.ts
+import { IsString, IsNotEmpty, MinLength, IsOptional, IsArray } from 'class-validator';
+import { CreateTeamMemberDto } from './create-team-member.dto';
 
 export class CreateTeamDto {
-    name: string;
-    description: string;
-    createdBy: User; 
-    members: TeamMember[]; 
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsArray()
+  @IsOptional()
+  members?: CreateTeamMemberDto[];
 }

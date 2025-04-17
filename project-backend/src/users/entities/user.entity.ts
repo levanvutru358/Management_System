@@ -32,6 +32,6 @@ export class User {
   @OneToMany(() => Comment, (comment) => comment.user)
   comments: Comment[];
 
-  @OneToMany(() => Team, (team) => team.createdBy)
+  @OneToMany(() => Team, (team) => team.createdBy, { cascade: false })
   teams: Team[];
 }
