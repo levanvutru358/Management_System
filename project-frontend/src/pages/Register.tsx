@@ -1,65 +1,88 @@
+// frontend/src/pages/Register.tsx
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { TextField, Button, Container, Typography } from '@mui/material';
-import { registerUser } from '../services/authService';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { TextField, Button, MenuItem, Container, Typography, Box, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { register } from '../services/authService';
 
 const registerSchema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
   name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.enum(['admin', 'user']),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+  const { register: formRegister, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      role: 'user',
+    },
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    await registerUser(data);
-    navigate('/login');
+    try {
+      await register(data);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error registering:', error);
+    }
   };
 
   return (
-    <Container maxWidth="xs">
-      <Typography variant="h4" align="center" gutterBottom>
-        Register
-      </Typography>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <TextField
-          label="Email"
-          {...register('email')}
-          error={!!errors.email}
-          helperText={errors.email?.message}
-          fullWidth
-          margin="normal"
-        />
-        <TextField
-          label="Password"
-          type="password"
-          {...register('password')}
-          error={!!errors.password}
-          helperText={errors.password?.message}
-          fullWidth
-          margin="normal"
-        />
-        <TextField
-          label="Name"
-          {...register('name')}
-          error={!!errors.name}
-          helperText={errors.name?.message}
-          fullWidth
-          margin="normal"
-        />
-        <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+        <Typography variant="h4" gutterBottom align="center">
           Register
-        </Button>
-      </form>
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <TextField
+            label="Name"
+            variant="outlined"
+            {...formRegister('name')}
+            error={!!errors.name}
+            helperText={errors.name?.message}
+            fullWidth
+          />
+          <TextField
+            label="Email"
+            variant="outlined"
+            {...formRegister('email')}
+            error={!!errors.email}
+            helperText={errors.email?.message}
+            fullWidth
+          />
+          <TextField
+            label="Password"
+            type="password"
+            variant="outlined"
+            {...formRegister('password')}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Role"
+            variant="outlined"
+            {...formRegister('role')}
+            error={!!errors.role}
+            helperText={errors.role?.message}
+            fullWidth
+          >
+            <MenuItem value="user">User</MenuItem>
+            <MenuItem value="admin">Admin</MenuItem>
+          </TextField>
+          <Button type="submit" variant="contained" color="primary" size="large">
+            Register
+          </Button>
+        </Box>
+      </Paper>
     </Container>
   );
 };

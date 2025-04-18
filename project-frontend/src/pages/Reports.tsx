@@ -1,18 +1,31 @@
+// frontend/src/pages/Reports.tsx
 import React from 'react';
-import { Container, Typography, Box } from '@mui/material';
+import { Container, Typography, Box, Paper } from '@mui/material';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import { getCurrentUser } from '../services/authService';
+import { Navigate } from 'react-router-dom';
 
 const Reports: React.FC = () => {
+  const user = getCurrentUser();
+
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         <Sidebar />
-        <Container sx={{ ml: '240px', mt: 2 }}>
-          <Typography variant="h4">Reports</Typography>
-          <Typography>Task reports will be displayed here.</Typography>
+        <Container sx={{ ml: '5px', mt: 2, mb: 2 }}>
+          <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+            <Typography variant="h4" gutterBottom>
+              Reports
+            </Typography>
+            <Typography>Task reports will be displayed here.</Typography>
+          </Paper>
         </Container>
       </Box>
       <Footer />
