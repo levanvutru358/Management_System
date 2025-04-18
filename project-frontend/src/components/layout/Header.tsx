@@ -1,26 +1,34 @@
+// frontend/src/components/layout/Header.tsx
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button } from '@mui/material';
-import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { logout, getCurrentUser } from '../../services/authService';
 
 const Header: React.FC = () => {
-  const { logout } = useAuth();
   const navigate = useNavigate();
+  const user = getCurrentUser();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
   return (
     <AppBar position="static">
-      <Toolbar sx={{ pl: { xs: 0, sm: 20 } }}> 
-        <Typography variant="h6" sx={{ flexGrow: 2 }}>
-          Task Management System
+      <Toolbar>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          Task Management
         </Typography>
-        <Button color="inherit" onClick={handleLogout}>
-          Logout
-        </Button>
+        {user && (
+          <>
+            <Typography variant="body1" sx={{ mr: 2 }}>
+              Welcome, {user.email} ({user.role})
+            </Typography>
+            <Button color="inherit" onClick={handleLogout}>
+              Logout
+            </Button>
+          </>
+        )}
       </Toolbar>
     </AppBar>
   );

@@ -1,32 +1,59 @@
+// frontend/src/components/layout/Sidebar.tsx
 import React from 'react';
-import { Drawer, List, ListItem, ListItemText } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Drawer, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import { Assignment, Assessment, Dashboard, Person } from '@mui/icons-material';
+import { getCurrentUser } from '../../services/authService';
+
+// Định nghĩa type cho Link để TypeScript hiểu
+interface LinkProps {
+  to: string;
+  children: React.ReactNode;
+}
 
 const Sidebar: React.FC = () => {
+  const user = getCurrentUser();
+
   return (
     <Drawer
       variant="permanent"
       sx={{
-        width: 240,
+        width: 200,
         flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: 150, boxSizing: 'border-box', zIndex: 1000 }, 
+        [`& .MuiDrawer-paper`]: {
+          width: 200,
+          boxSizing: 'border-box',
+          mt: '64px', // Để Sidebar nằm dưới Header
+          zIndex: 1000,
+        },
       }}
     >
       <List>
-        <ListItem component={Link} to="/dashboard">
+        <ListItem component={RouterLink} to="/dashboard">
+          <ListItemIcon>
+            <Dashboard />
+          </ListItemIcon>
           <ListItemText primary="Dashboard" />
         </ListItem>
-        <ListItem component={Link} to="/tasks">
+        <ListItem component={RouterLink} to="/tasks">
+          <ListItemIcon>
+            <Assignment />
+          </ListItemIcon>
           <ListItemText primary="Tasks" />
         </ListItem>
-        <ListItem component={Link} to="/reports">
-          <ListItemText primary="Reports" />
-        </ListItem>
-        <ListItem component={Link} to="/profile">
+        {user?.role === 'admin' && (
+          <ListItem component={RouterLink} to="/reports">
+            <ListItemIcon>
+              <Assessment />
+            </ListItemIcon>
+            <ListItemText primary="Reports" />
+          </ListItem>
+        )}
+        <ListItem component={RouterLink} to="/profile">
+          <ListItemIcon>
+            <Person />
+          </ListItemIcon>
           <ListItemText primary="Profile" />
-        </ListItem>
-        <ListItem component={Link} to="/admin">
-          <ListItemText primary="Admin" />
         </ListItem>
       </List>
     </Drawer>

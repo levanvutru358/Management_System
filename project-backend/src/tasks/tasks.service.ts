@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
@@ -32,18 +32,21 @@ export class TasksService {
   async findOne(id: number): Promise<Task> {
     const task = await this.tasksRepository.findOneBy({ id });
     if (!task) {
-      throw new ForbiddenException('Task not found');
+      throw new NotFoundException(`Task with ID ${id} not found`);
     }
     return task;
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto): Promise<Task> {
+    const task = await this.findOne(id); // Kiểm tra task tồn tại
     await this.tasksRepository.update(id, updateTaskDto);
-    return this.findOne(id);
+    return this.findOne(id); // Trả về task đã cập nhật
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise<{ message: string }> {
+    const task = await this.findOne(id); // Kiểm tra task tồn tại
     await this.tasksRepository.delete(id);
+    return { message: `Task with ID ${id} deleted successfully` };
   }
 
   async search(userId: number, keyword: string): Promise<Task[]> {
@@ -94,11 +97,13 @@ export class TasksService {
   }
 
   checkPermission(task: Task, userId: number, requireEdit = false): void {
+    // Kiểm tra quyền truy cập: userId hoặc assignedUserId
     if (task.userId !== userId && task.assignedUserId !== userId) {
       throw new ForbiddenException('You do not have permission to access this task');
     }
-    if (requireEdit && task.userId !== userId) {
-      throw new ForbiddenException('Only the owner can edit this task');
+    // Nếu yêu cầu chỉnh sửa: cả userId và assignedUserId đều có quyền
+    if (requireEdit && task.userId !== userId && task.assignedUserId !== userId) {
+      throw new ForbiddenException('You do not have permission to edit this task');
     }
   }
 }

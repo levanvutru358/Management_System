@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Task {
@@ -12,15 +12,15 @@ export class Task {
   description: string;
 
   @Column()
-  status: string;
-
-  @Column({ type: 'date', nullable: true })
   dueDate: string;
+
+  @Column()
+  status: string;
 
   @Column()
   priority: string;
 
-  @Column()
+  @Column({ nullable: true })
   userId: number;
 
   @Column({ nullable: true })

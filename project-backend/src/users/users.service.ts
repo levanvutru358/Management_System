@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+// backend/src/users/users.service.ts
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt'; // Thêm bcrypt
 
 @Injectable()
 export class UsersService {
@@ -17,17 +19,33 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const user = this.usersRepository.create(createUserDto);
+    const { email, password, role } = createUserDto;
+
+    // Kiểm tra email đã tồn tại
+    const existingUser = await this.usersRepository.findOneBy({ email });
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
+    }
+
+    // Hash mật khẩu trước khi lưu
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Tạo user mới với mật khẩu đã hash và role mặc định
+    const user = this.usersRepository.create({
+      ...createUserDto,
+      password: hashedPassword, // Lưu mật khẩu đã hash
+      role: role || 'user', // Mặc định là 'user'
+    });
+
     return this.usersRepository.save(user);
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
     try {
-      console.log('UsersRepository before findOneBy:', this.usersRepository);
       console.log('Finding user with email:', email);
       const user = await this.usersRepository.findOneBy({ email });
       console.log('Found user:', user);
-      return user || undefined; // Chuyển null thành undefined
+      return user || undefined;
     } catch (error) {
       console.error('Error in findByEmail:', error.message);
       throw new Error(`Failed to find user by email: ${error.message}`);

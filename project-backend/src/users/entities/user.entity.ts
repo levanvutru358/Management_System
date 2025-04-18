@@ -17,9 +17,9 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
-  @Column({ default: 'user' })
-  role: string;
-
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ enum: ['admin', 'user'], default: 'user' }) // Thêm trường role
+  role: 'admin' | 'user';
 }
