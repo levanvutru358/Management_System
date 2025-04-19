@@ -20,6 +20,6 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
-  @Column({ enum: ['admin', 'user'], default: 'user' }) // Thêm trường role
+  @Column({ type: 'enum', enum: ['admin', 'user'], default: 'user' }) // Chỉ định rõ type: 'enum'
   role: 'admin' | 'user';
 }
