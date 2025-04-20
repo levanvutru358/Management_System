@@ -33,6 +33,7 @@ export class Task {
 
   @OneToMany(() => Attachment, (attachment) => attachment.task, {
     cascade: true,
+    eager: true,
   })
   attachments: Attachment[];
 }

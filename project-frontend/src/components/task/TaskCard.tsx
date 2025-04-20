@@ -1,14 +1,5 @@
 import React, { useState } from "react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-} from "@mui/material";
+import { Card, CardContent, Typography, Button, Box } from "@mui/material";
 import { Task } from "../../services/taskService";
 import AssignTaskForm from "./AssignTaskForm";
 
@@ -26,89 +17,111 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onAssign,
 }) => {
   const [openAssign, setOpenAssign] = useState(false);
+  const subtasks = task.subtasks || [];
+  const attachments = task.attachments || [];
 
   const handleOpenAssign = () => setOpenAssign(true);
   const handleCloseAssign = () => setOpenAssign(false);
-
-  const subtasks = task.subtasks ?? [];
 
   return (
     <>
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="h6">{task.title}</Typography>
-          <Typography variant="body2">{task.description}</Typography>
+          <Typography variant="h5" gutterBottom>
+            {task.title}
+          </Typography>
+
+          {/* Hiển thị số file đính kèm */}
+          {attachments.length > 0 && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}
+            >
+              📎 {attachments.length} file
+            </Typography>
+          )}
+
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            {task.description}
+          </Typography>
           <Typography variant="body2">Deadline: {task.deadline}</Typography>
           <Typography variant="body2">Status: {task.status}</Typography>
           <Typography variant="body2">Priority: {task.priority}</Typography>
           <Typography variant="body2">
             Assigned to:{" "}
-            {task.assignedTo ? `User ID ${task.assignedTo}` : "Not assigned"}
+            {task.assignedTo ||
+              (task.assignedTo ? `User ID ${task.assignedTo}` : "Not assigned")}
           </Typography>
 
-          {/* Checklist - hiển thị dạng chấm tròn */}
-          {subtasks.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: "bold", mb: 1 }}
-              >
-                Checklist
-              </Typography>
-              <ul style={{ paddingLeft: "1.2em", margin: 0 }}>
-                {subtasks.map((subtask) => (
-                  <li key={subtask.id}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        textDecoration: subtask.completed
-                          ? "line-through"
-                          : "none",
-                        color: subtask.completed ? "gray" : "inherit",
-                      }}
-                    >
-                      {subtask.title}
-                    </Typography>
-                  </li>
-                ))}
-              </ul>
-            </Box>
-          )}
+          {/* Checklist và Attachments */}
+          {(subtasks.length > 0 || attachments.length > 0) && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                mt: 2,
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
+              {/* Checklist */}
+              {subtasks.length > 0 && (
+                <Box sx={{ flex: "1 1 45%", minWidth: "250px" }}>
+                  <Typography variant="subtitle1" fontWeight="bold" mb={1}>
+                    Checklist
+                  </Typography>
+                  <ul style={{ paddingLeft: "1.2em", margin: 0 }}>
+                    {subtasks.map((subtask) => (
+                      <li key={subtask.id}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            textDecoration: subtask.completed
+                              ? "line-through"
+                              : "none",
+                            color: subtask.completed ? "gray" : "inherit",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {subtask.title}
+                        </Typography>
+                      </li>
+                    ))}
+                  </ul>
+                </Box>
+              )}
 
-          {/* Attachments */}
-          {Array.isArray(task.attachments) && task.attachments.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: "bold", mb: 1 }}
-              >
-                Attachments
-              </Typography>
-              <List dense>
-                {task.attachments.map((file) => (
-                  <ListItem key={file.id}>
-                    <Typography component="span" sx={{ mr: 1 }}>
-                      📎
-                    </Typography>
-                    <ListItemText
-                      primary={
+              {/* Attachments (simple version) */}
+              {attachments.length > 0 && (
+                <Box sx={{ flex: "1 1 45%", minWidth: "250px" }}>
+                  <Typography variant="subtitle1" fontWeight="bold" mb={1}>
+                    Attachments
+                  </Typography>
+                  <ul style={{ paddingLeft: "1.2em", margin: 0 }}>
+                    {attachments.map((file, index) => (
+                      <li key={index}>
                         <a
-                          href={file.url}
+                          href={file.path}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ textDecoration: "none", color: "#1976d2" }}
+                          style={{
+                            textDecoration: "none",
+                            color: "#1976d2",
+                            wordBreak: "break-word",
+                          }}
                         >
-                          {file.filename}
+                          📎 {file.filename}
                         </a>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
+                      </li>
+                    ))}
+                  </ul>
+                </Box>
+              )}
             </Box>
           )}
 
-          {/* Actions */}
+          {/* Action Buttons */}
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" onClick={onEdit} sx={{ mr: 1 }}>
               Edit

@@ -9,6 +9,7 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  Typography,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createTask, updateTask, Task } from "../../services/taskService";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { Attachment } from "../../types/task";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -41,7 +43,8 @@ interface TaskFormProps {
 const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [subtaskInput, setSubtaskInput] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
 
   const {
     register,
@@ -78,14 +81,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
     }
 
     if (task?.attachments) {
-      // Nếu muốn preview tên file đã upload từ backend, bạn có thể lưu vào state khác
-      // hoặc tạo phần hiển thị riêng
+      setExistingFiles(task.attachments);
     }
   }, [task]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
-      setFiles(Array.from(e.target.files));
+      setNewFiles(Array.from(e.target.files));
     }
   };
 
@@ -110,25 +112,39 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
 
   const onFormSubmit = async (data: TaskFormData) => {
     try {
-      const fullData = {
-        ...data,
-        subtasks: subtasks.map((s, index) => ({
-          id: parseInt(s.id) || index,
-          title: s.title,
-          completed: s.completed ?? false,
-        })),
-        files,
-      };
+      const formData = new FormData();
+
+      formData.append("title", data.title);
+      formData.append("description", data.description);
+      formData.append("deadline", data.deadline);
+      formData.append("status", data.status);
+      formData.append("priority", data.priority);
+
+      formData.append(
+        "subtasks",
+        JSON.stringify(
+          subtasks.map((s, index) => ({
+            id: parseInt(s.id) || index,
+            title: s.title,
+            completed: s.completed ?? false,
+          }))
+        )
+      );
+
+      newFiles.forEach((file) => {
+        formData.append("files", file);
+      });
 
       if (task?.id) {
-        await updateTask(task.id, fullData);
+        await updateTask(task.id, formData);
       } else {
-        await createTask(fullData);
+        await createTask(formData);
       }
 
       onSubmit();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submit task error:", error);
+      alert("Lỗi khi gửi task. Kiểm tra lại dữ liệu hoặc file upload.");
     }
   };
 
@@ -158,7 +174,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         fullWidth
         margin="normal"
       />
-
       <TextField
         select
         label="Status"
@@ -171,7 +186,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         <MenuItem value="Done">Done</MenuItem>
         <MenuItem value="Archived">Archived</MenuItem>
       </TextField>
-
       <TextField
         select
         label="Priority"
@@ -184,18 +198,53 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         <MenuItem value="High">High</MenuItem>
       </TextField>
 
-      {/* File Upload */}
+      <Typography variant="subtitle1" sx={{ mt: 3 }}>
+        Existing Attachments:
+      </Typography>
+      <List dense>
+        {existingFiles.map((file) => (
+          <ListItem key={file.id} disablePadding sx={{ mb: 1 }}>
+            {file.path.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+              <a href={file.path} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={file.path}
+                  alt={file.filename}
+                  style={{ maxWidth: "100%", maxHeight: 150, borderRadius: 4 }}
+                />
+              </a>
+            ) : (
+              <ListItemText
+                primary={
+                  <a
+                    href={file.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#1976d2", textDecoration: "none" }}
+                  >
+                    📎 {file.filename}
+                  </a>
+                }
+              />
+            )}
+          </ListItem>
+        ))}
+      </List>
+
       <Button component="label" startIcon={<UploadFileIcon />} sx={{ mt: 2 }}>
-        Upload File
+        Upload New File
         <input hidden multiple type="file" onChange={handleFileChange} />
       </Button>
       <div>
-        {files.map((file) => (
+        {newFiles.map((file) => (
           <div key={file.name}>{file.name}</div>
         ))}
       </div>
 
-      {/* Subtasks */}
+      <Typography variant="subtitle1" sx={{ mt: 2 }}>
+        Subtasks ({subtasks.filter((s) => s.completed).length}/{subtasks.length}{" "}
+        completed)
+      </Typography>
+
       <TextField
         label="New Subtask"
         value={subtaskInput}
@@ -206,6 +255,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
       <Button onClick={addSubtask} variant="outlined" size="small">
         Add Subtask
       </Button>
+
       <List>
         {subtasks.map((subtask) => (
           <ListItem key={subtask.id} dense>

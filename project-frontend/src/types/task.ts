@@ -12,6 +12,7 @@ export interface Attachment {
   id: number;
   filename: string;
   url: string;
+  path: string;
   taskId?: number;
   uploadedAt?: string;
 }

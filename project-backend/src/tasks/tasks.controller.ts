@@ -58,11 +58,34 @@ export class TasksController {
 
     if (subtasks && typeof subtasks === 'string') {
       try {
-        parsedSubtasks = JSON.parse(subtasks);
-      } catch (error) {
+        const parsed = JSON.parse(subtasks);
+        if (
+          Array.isArray(parsed) &&
+          parsed.every(
+            (subtask) =>
+              typeof subtask === 'object' &&
+              typeof subtask.title === 'string' &&
+              (subtask.completed === undefined ||
+                typeof subtask.completed === 'boolean'),
+          )
+        ) {
+          parsedSubtasks = parsed;
+        } else {
+          throw new Error();
+        }
+      } catch {
         throw new BadRequestException('Invalid subtasks JSON format');
       }
-    } else if (Array.isArray(subtasks)) {
+    } else if (
+      Array.isArray(subtasks) &&
+      subtasks.every(
+        (subtask) =>
+          typeof subtask === 'object' &&
+          typeof subtask.title === 'string' &&
+          (subtask.completed === undefined ||
+            typeof subtask.completed === 'boolean'),
+      )
+    ) {
       parsedSubtasks = subtasks;
     }
 
@@ -102,17 +125,31 @@ export class TasksController {
       attachments?: Express.Multer.File[];
     },
   ) {
-    const { subtasks, ...taskData } = body;
+    const { subtasks, ...taskData } = body as {
+      subtasks?: string | { title: string; completed?: boolean }[];
+      [key: string]: any;
+    };
 
     let parsedSubtasks: { title: string; completed?: boolean }[] = [];
 
     if (subtasks && typeof subtasks === 'string') {
       try {
-        parsedSubtasks = JSON.parse(subtasks);
-      } catch (error) {
+        const parsed = JSON.parse(subtasks);
+        if (
+          Array.isArray(parsed) &&
+          parsed.every((subtask) => typeof subtask.title === 'string')
+        ) {
+          parsedSubtasks = parsed;
+        } else {
+          throw new Error();
+        }
+      } catch {
         throw new BadRequestException('Invalid subtasks JSON format');
       }
-    } else if (Array.isArray(subtasks)) {
+    } else if (
+      Array.isArray(subtasks) &&
+      subtasks.every((subtask) => typeof subtask.title === 'string')
+    ) {
       parsedSubtasks = subtasks;
     }
 

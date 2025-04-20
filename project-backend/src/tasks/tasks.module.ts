@@ -4,13 +4,17 @@ import { TasksService } from './tasks.service';
 import { TasksController } from './tasks.controller';
 import { Task } from './entities/task.entity';
 import { Comment } from './entities/comment.entity';
-import { Subtask } from './entities/subtask.entity'; // ✅ Thêm nếu thiếu
-import { Attachment } from './entities/attachment.entity'; // ✅ Thêm nếu thiếu
+import { Subtask } from './entities/subtask.entity';
+import { Attachment } from './entities/attachment.entity';
+import { ConfigModule } from '@nestjs/config'; // ✅ Import thêm ConfigModule
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Comment, Subtask, Attachment])],
+  imports: [
+    TypeOrmModule.forFeature([Task, Comment, Subtask, Attachment]),
+    ConfigModule, // ✅ Thêm dòng này để dùng được ConfigService
+  ],
   controllers: [TasksController],
   providers: [TasksService],
-  exports: [TasksService], // ✅ Thêm dòng này để module khác có thể dùng
+  exports: [TasksService],
 })
 export class TasksModule {}

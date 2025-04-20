@@ -12,6 +12,9 @@ export class Attachment {
   @Column()
   path: string;
 
+  @Column()
+  mimetype: string;
+
   @ManyToOne(() => Task, (task) => task.attachments, { onDelete: 'CASCADE' })
   task: Task;
 }
