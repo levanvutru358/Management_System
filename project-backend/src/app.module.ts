@@ -22,7 +22,7 @@ import { Attachment } from './tasks/entities/attachment.entity';
       port: 3306,
       username: 'TUANPHONG',
       password: '123321',
-      database: 'task_manager',
+      database: 'task',
       entities: [User, Task, Subtask, Attachment],
       synchronize: true,
     }),

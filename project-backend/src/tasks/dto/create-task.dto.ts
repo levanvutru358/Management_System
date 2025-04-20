@@ -6,6 +6,7 @@ import {
   IsDateString,
   ValidateNested,
   IsNumber,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -15,6 +16,15 @@ export class AttachmentInputDto {
 
   @IsString()
   path: string;
+}
+
+export class SubtaskInputDto {
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsBoolean()
+  completed?: boolean;
 }
 
 export class CreateTaskDto {
@@ -39,8 +49,9 @@ export class CreateTaskDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  subtasks?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => SubtaskInputDto)
+  subtasks?: SubtaskInputDto[];
 
   @IsOptional()
   @IsArray()

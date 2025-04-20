@@ -1,29 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { TextField, Button, MenuItem, Box } from "@mui/material";
+import {
+  TextField,
+  Button,
+  MenuItem,
+  Checkbox,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+} from "@mui/material";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTask, updateTask, Task } from "../../services/taskService";
-import Checklist from "./Checklist";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  dueDate: z.string(),
-  status: z.enum(["todo", "in-progress", "done"]),
-  priority: z.enum(["low", "medium", "high"]),
-  subtasks: z
-    .array(
-      z.object({
-        id: z.number().optional(),
-        title: z.string(),
-        completed: z.boolean(),
-      })
-    )
-    .optional(),
+  deadline: z.string(),
+  status: z.enum(["Todo", "Doing", "Done", "Archived"]),
+  priority: z.enum(["Low", "Medium", "High"]),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
+
+interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
 
 interface TaskFormProps {
   task?: Task | null;
@@ -31,65 +39,96 @@ interface TaskFormProps {
 }
 
 const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [subtaskInput, setSubtaskInput] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch,
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: task
       ? {
           title: task.title,
-          description: task.description,
-          dueDate: task.dueDate,
-          status: task.status,
-          priority: task.priority,
-          subtasks: task.subtasks || [],
+          description: task.description ?? "",
+          deadline: task.deadline ?? new Date().toISOString().split("T")[0],
+          status: task.status ?? "Todo",
+          priority: task.priority ?? "Medium",
         }
       : {
           title: "",
           description: "",
-          dueDate: new Date().toISOString().split("T")[0],
-          status: "todo",
-          priority: "medium",
-          subtasks: [],
+          deadline: new Date().toISOString().split("T")[0],
+          status: "Todo",
+          priority: "Medium",
         },
   });
 
-  const [subtasks, setSubtasks] = useState<TaskFormData["subtasks"]>(
-    task?.subtasks || []
-  );
-  const [attachments, setAttachments] = useState<FileList | null>(null);
+  useEffect(() => {
+    if (task?.subtasks) {
+      setSubtasks(
+        task.subtasks.map((s, i) => ({
+          id: s.id?.toString() || i.toString(),
+          title: s.title,
+          completed: s.completed ?? false,
+        }))
+      );
+    }
 
-  // 👇 Bắt sự kiện submit
+    if (task?.attachments) {
+      // Nếu muốn preview tên file đã upload từ backend, bạn có thể lưu vào state khác
+      // hoặc tạo phần hiển thị riêng
+    }
+  }, [task]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
+
+  const addSubtask = () => {
+    if (!subtaskInput.trim()) return;
+    setSubtasks([
+      ...subtasks,
+      { id: Date.now().toString(), title: subtaskInput, completed: false },
+    ]);
+    setSubtaskInput("");
+  };
+
+  const toggleSubtask = (id: string) => {
+    setSubtasks((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, completed: !s.completed } : s))
+    );
+  };
+
+  const removeSubtask = (id: string) => {
+    setSubtasks((prev) => prev.filter((s) => s.id !== id));
+  };
+
   const onFormSubmit = async (data: TaskFormData) => {
     try {
-      const formData = new FormData();
-
-      formData.append("title", data.title);
-      formData.append("description", data.description);
-      formData.append("dueDate", data.dueDate);
-      formData.append("status", data.status);
-      formData.append("priority", data.priority);
-      formData.append("subtasks", JSON.stringify(subtasks || []));
-
-      if (attachments) {
-        Array.from(attachments).forEach((file) => {
-          formData.append("attachments", file);
-        });
-      }
+      const fullData = {
+        ...data,
+        subtasks: subtasks.map((s, index) => ({
+          id: parseInt(s.id) || index,
+          title: s.title,
+          completed: s.completed ?? false,
+        })),
+        files,
+      };
 
       if (task?.id) {
-        await updateTask(task.id, formData);
+        await updateTask(task.id, fullData);
       } else {
-        await createTask(formData);
+        await createTask(fullData);
       }
 
       onSubmit();
     } catch (error) {
-      console.error("Submit error:", error);
+      console.error("Submit task error:", error);
     }
   };
 
@@ -112,13 +151,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         margin="normal"
       />
       <TextField
-        label="Due Date"
+        label="Deadline"
         type="date"
-        {...register("dueDate")}
+        {...register("deadline")}
         InputLabelProps={{ shrink: true }}
         fullWidth
         margin="normal"
       />
+
       <TextField
         select
         label="Status"
@@ -126,10 +166,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         fullWidth
         margin="normal"
       >
-        <MenuItem value="todo">To Do</MenuItem>
-        <MenuItem value="in-progress">In Progress</MenuItem>
-        <MenuItem value="done">Done</MenuItem>
+        <MenuItem value="Todo">To Do</MenuItem>
+        <MenuItem value="Doing">Doing</MenuItem>
+        <MenuItem value="Done">Done</MenuItem>
+        <MenuItem value="Archived">Archived</MenuItem>
       </TextField>
+
       <TextField
         select
         label="Priority"
@@ -137,45 +179,54 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         fullWidth
         margin="normal"
       >
-        <MenuItem value="low">Low</MenuItem>
-        <MenuItem value="medium">Medium</MenuItem>
-        <MenuItem value="high">High</MenuItem>
+        <MenuItem value="Low">Low</MenuItem>
+        <MenuItem value="Medium">Medium</MenuItem>
+        <MenuItem value="High">High</MenuItem>
       </TextField>
 
-      {/* ✅ Checklist */}
-      <Checklist subtasks={subtasks || []} onChange={setSubtasks} />
+      {/* File Upload */}
+      <Button component="label" startIcon={<UploadFileIcon />} sx={{ mt: 2 }}>
+        Upload File
+        <input hidden multiple type="file" onChange={handleFileChange} />
+      </Button>
+      <div>
+        {files.map((file) => (
+          <div key={file.name}>{file.name}</div>
+        ))}
+      </div>
 
-      {/* ✅ File Upload */}
-      <Box mt={2}>
-        <label>
-          <strong>Attachments</strong>
-        </label>
-        <input
-          type="file"
-          multiple
-          onChange={(e) => setAttachments(e.target.files)}
-          style={{ display: "block", marginTop: "8px" }}
-        />
-        {attachments && (
-          <ul style={{ marginTop: "10px" }}>
-            {Array.from(attachments).map((file, index) => (
-              <li key={index}>
-                {file.name}
-                {file.type.startsWith("image/") && (
-                  <Box mt={1}>
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={file.name}
-                      width="100"
-                      style={{ borderRadius: 8 }}
-                    />
-                  </Box>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Box>
+      {/* Subtasks */}
+      <TextField
+        label="New Subtask"
+        value={subtaskInput}
+        onChange={(e) => setSubtaskInput(e.target.value)}
+        fullWidth
+        margin="normal"
+      />
+      <Button onClick={addSubtask} variant="outlined" size="small">
+        Add Subtask
+      </Button>
+      <List>
+        {subtasks.map((subtask) => (
+          <ListItem key={subtask.id} dense>
+            <Checkbox
+              checked={subtask.completed}
+              onChange={() => toggleSubtask(subtask.id)}
+            />
+            <ListItemText
+              primary={subtask.title}
+              sx={{
+                textDecoration: subtask.completed ? "line-through" : "none",
+              }}
+            />
+            <ListItemSecondaryAction>
+              <IconButton edge="end" onClick={() => removeSubtask(subtask.id)}>
+                <DeleteIcon />
+              </IconButton>
+            </ListItemSecondaryAction>
+          </ListItem>
+        ))}
+      </List>
 
       <Button type="submit" variant="contained" sx={{ mt: 2 }}>
         {task ? "Update Task" : "Create Task"}

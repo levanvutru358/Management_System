@@ -12,6 +12,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { Subtask } from './entities/subtask.entity';
 import { Attachment } from './entities/attachment.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class TasksService {
@@ -28,25 +29,32 @@ export class TasksService {
 
   async create(createTaskDto: CreateTaskDto): Promise<Task> {
     const { subtasks, attachments, ...taskData } = createTaskDto;
+
     const task = this.tasksRepository.create(taskData);
-
-    if (subtasks && Array.isArray(subtasks)) {
-      task.subtasks = subtasks.map((title: string) =>
-        this.subtasksRepository.create({ title }),
-      );
-    }
-
     const savedTask = await this.tasksRepository.save(task);
 
-    if (attachments && Array.isArray(attachments)) {
-      for (const file of attachments) {
-        const attach = this.attachmentsRepository.create({
+    // Save subtasks
+    if (subtasks?.length) {
+      const subtaskEntities = subtasks.map((item) =>
+        this.subtasksRepository.create({
+          title: item.title,
+          completed: item.completed ?? false,
+          task: savedTask,
+        }),
+      );
+      await this.subtasksRepository.save(subtaskEntities);
+    }
+
+    // Save attachments
+    if (attachments?.length) {
+      const attachmentEntities = attachments.map((file) =>
+        this.attachmentsRepository.create({
           filename: file.filename,
           path: file.path,
           task: savedTask,
-        });
-        await this.attachmentsRepository.save(attach);
-      }
+        }),
+      );
+      await this.attachmentsRepository.save(attachmentEntities);
     }
 
     return this.findOne(savedTask.id);
@@ -59,9 +67,7 @@ export class TasksService {
   }
 
   async findAllSystem(): Promise<Task[]> {
-    return this.tasksRepository.find({
-      relations: ['subtasks', 'attachments'],
-    });
+    return this.findAll();
   }
 
   async findOne(id: number): Promise<Task> {
@@ -76,11 +82,57 @@ export class TasksService {
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto): Promise<Task> {
-    await this.tasksRepository.update(id, updateTaskDto);
+    const { subtasks, attachments, ...taskData } = updateTaskDto;
+
+    const task = await this.findOne(id);
+    Object.assign(task, taskData);
+    await this.tasksRepository.save(task);
+
+    // Update subtasks
+    if (Array.isArray(subtasks)) {
+      await this.subtasksRepository.delete({ task: { id } });
+      const newSubtasks = subtasks.map((item) =>
+        this.subtasksRepository.create({
+          title: item.title,
+          completed: item.completed ?? false,
+          task,
+        }),
+      );
+      await this.subtasksRepository.save(newSubtasks);
+    }
+
+    // Update attachments
+    if (Array.isArray(attachments)) {
+      await this.attachmentsRepository.delete({ task: { id } });
+      const newAttachments = attachments.map((file) =>
+        this.attachmentsRepository.create({
+          filename: file.filename,
+          path: file.path,
+          task,
+        }),
+      );
+      await this.attachmentsRepository.save(newAttachments);
+    }
+
     return this.findOne(id);
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(
+    id: number,
+    user: { id: number; role: string },
+  ): Promise<{ message: string }> {
+    const task = await this.tasksRepository.findOne({ where: { id } });
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+
+    if (user.role !== 'admin' && task.userId !== user.id) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this task',
+      );
+    }
+
     await this.tasksRepository.delete(id);
     return { message: `Task with ID ${id} deleted successfully` };
   }
@@ -113,8 +165,13 @@ export class TasksService {
       .getMany();
   }
 
-  async assignTask(id: number, assignTaskDto: AssignTaskDto): Promise<Task> {
+  async assignTask(
+    id: number,
+    assignTaskDto: AssignTaskDto,
+    user: User,
+  ): Promise<Task> {
     const task = await this.findOne(id);
+    this.checkPermission(task, user.id, true);
     task.assignedUserId = assignTaskDto.assignedUserId;
     return this.tasksRepository.save(task);
   }

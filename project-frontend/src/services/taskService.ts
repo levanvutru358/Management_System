@@ -1,28 +1,21 @@
+import { Attachment, Subtask } from "../types/task";
 import api from "./api";
-
-export interface Subtask {
-  id?: number;
-  title: string;
-  completed: boolean;
-}
-
-export interface Attachment {
-  id: number;
-  filename: string;
-  path: string;
-}
 
 export interface Task {
   id: number;
   title: string;
-  description: string;
-  dueDate: string;
-  status: "todo" | "in-progress" | "done";
-  priority: "low" | "medium" | "high";
-  userId: number;
-  assignedUserId: number | null;
-  subtasks?: Subtask[];
+  description?: string;
+  status?: "Todo" | "Doing" | "Done" | "Archived";
+  priority?: "Low" | "Medium" | "High";
+  checklist?: Subtask[];
   attachments?: Attachment[];
+  startDate?: string;
+  deadline?: string;
+  assignedTo?: number;
+  listId?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  subtasks?: Subtask[];
 }
 
 export interface User {
@@ -31,41 +24,35 @@ export interface User {
   email: string;
 }
 
-// GET all tasks
 export const getTasks = async (): Promise<Task[]> => {
   const response = await api.get("/tasks");
   return response.data;
 };
-
-// CREATE task with FormData (includes files and subtasks)
-export const createTask = async (formData: FormData): Promise<Task> => {
-  const response = await api.post("/tasks", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+export const updateSubtaskStatus = async (
+  subtaskId: number,
+  completed: boolean
+): Promise<void> => {
+  await api.patch(`/subtasks/${subtaskId}`, { completed });
+};
+export const createTask = async (
+  task: Omit<Task, "id" | "userId" | "assignedUserId">
+): Promise<Task> => {
+  const response = await api.post("/tasks", task);
   return response.data;
 };
 
-// UPDATE task with FormData (includes files and subtasks)
 export const updateTask = async (
   id: number,
-  formData: FormData
+  task: Partial<Task>
 ): Promise<Task> => {
-  const response = await api.put(`/tasks/${id}`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  const response = await api.put(`/tasks/${id}`, task);
   return response.data;
 };
 
-// DELETE task
 export const deleteTask = async (id: number): Promise<void> => {
   await api.delete(`/tasks/${id}`);
 };
 
-// ASSIGN task to user
 export const assignTask = async (
   id: number,
   assignedUserId: number
@@ -74,7 +61,6 @@ export const assignTask = async (
   return response.data;
 };
 
-// GET all users
 export const getUsers = async (): Promise<User[]> => {
   const response = await api.get("/users");
   return response.data;

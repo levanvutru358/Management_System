@@ -10,6 +10,8 @@ import {
   UseGuards,
   UploadedFiles,
   UseInterceptors,
+  SetMetadata,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -23,7 +25,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TasksPermissionsGuard } from './tasks-permissions.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../users/entities/user.entity';
-import { SetMetadata } from '@nestjs/common';
 
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
@@ -32,57 +33,111 @@ export class TasksController {
 
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'attachments', maxCount: 10 }, // Đặt tối đa 10 file
-      ],
-      {
-        storage: diskStorage({
-          destination: './uploads/tasks', // folder lưu trữ
-          filename: (req, file, cb) => {
-            const uniqueSuffix =
-              Date.now() + '-' + Math.round(Math.random() * 1e9);
-            cb(null, uniqueSuffix + extname(file.originalname));
-          },
-        }),
-      },
-    ),
+    FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], {
+      storage: diskStorage({
+        destination: './uploads/tasks',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+    }),
   )
   async create(
     @GetUser() user: User,
-    @Body() createTaskDto: CreateTaskDto,
+    @Body() body: any,
     @UploadedFiles()
     files: {
       attachments?: Express.Multer.File[];
     },
   ) {
-    return this.tasksService.create({
-      ...createTaskDto,
+    const { subtasks, ...taskData } = body;
+
+    let parsedSubtasks: { title: string; completed?: boolean }[] = [];
+
+    if (subtasks && typeof subtasks === 'string') {
+      try {
+        parsedSubtasks = JSON.parse(subtasks);
+      } catch (error) {
+        throw new BadRequestException('Invalid subtasks JSON format');
+      }
+    } else if (Array.isArray(subtasks)) {
+      parsedSubtasks = subtasks;
+    }
+
+    const createTaskDto: CreateTaskDto = {
+      ...taskData,
       userId: user.id,
+      subtasks: parsedSubtasks,
       attachments: files?.attachments?.map((file) => ({
         filename: file.originalname,
         path: file.path,
       })),
-    });
-  }
+    };
 
-  @Get()
-  async findAll() {
-    return this.tasksService.findAll(); // <-- đã sửa đúng tên
+    return this.tasksService.create(createTaskDto);
   }
 
   @Put(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], {
+      storage: diskStorage({
+        destination: './uploads/tasks',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+    }),
+  )
+  async update(
+    @Param('id') id: string,
+    @Body() body: any,
+    @UploadedFiles()
+    files: {
+      attachments?: Express.Multer.File[];
+    },
+  ) {
+    const { subtasks, ...taskData } = body;
+
+    let parsedSubtasks: { title: string; completed?: boolean }[] = [];
+
+    if (subtasks && typeof subtasks === 'string') {
+      try {
+        parsedSubtasks = JSON.parse(subtasks);
+      } catch (error) {
+        throw new BadRequestException('Invalid subtasks JSON format');
+      }
+    } else if (Array.isArray(subtasks)) {
+      parsedSubtasks = subtasks;
+    }
+
+    const updateTaskDto: UpdateTaskDto = {
+      ...taskData,
+      subtasks: parsedSubtasks,
+      attachments: files?.attachments?.map((file) => ({
+        filename: file.originalname,
+        path: file.path,
+      })),
+    };
+
     return this.tasksService.update(+id, updateTaskDto);
+  }
+
+  @Get()
+  async findAll() {
+    return this.tasksService.findAll();
   }
 
   @Delete(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-  remove(@Param('id') id: string) {
-    return this.tasksService.remove(+id);
+  remove(@Param('id') id: string, @GetUser() user: User) {
+    return this.tasksService.remove(+id, user);
   }
 
   @Get('search')
@@ -93,8 +148,12 @@ export class TasksController {
   @Post(':id/assign')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-  assign(@Param('id') id: string, @Body() assignTaskDto: AssignTaskDto) {
-    return this.tasksService.assignTask(+id, assignTaskDto);
+  assign(
+    @Param('id') id: string,
+    @Body() assignTaskDto: AssignTaskDto,
+    @GetUser() user: User,
+  ) {
+    return this.tasksService.assignTask(+id, assignTaskDto, user);
   }
 
   @Post(':id/comments')
