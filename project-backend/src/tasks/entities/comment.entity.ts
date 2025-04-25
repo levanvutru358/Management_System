@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+// src/tasks/entities/comment.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { Task } from './task.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -10,12 +11,9 @@ export class Comment {
   @Column()
   content: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
-
   @ManyToOne(() => Task, (task) => task.comments)
   task: Task;
 
-  @ManyToOne(() => User, (user) => user.comments)
+  @ManyToOne(() => User)
   user: User;
 }

@@ -1,35 +1,59 @@
+// frontend/src/components/layout/Sidebar.tsx
 import React from 'react';
-import { Drawer, List, ListItem, ListItemText, ListItemButton } from '@mui/material';
+import { Drawer, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+import { Assignment, Assessment, Dashboard, Person } from '@mui/icons-material';
+import { getCurrentUser } from '../../services/authService';
+
+// Định nghĩa type cho Link để TypeScript hiểu
+interface LinkProps {
+  to: string;
+  children: React.ReactNode;
+}
 
 const Sidebar: React.FC = () => {
+  const user = getCurrentUser();
+
   return (
-    <Drawer variant="permanent" sx={{ width: 240 }}>
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: 200,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: {
+          width: 200,
+          boxSizing: 'border-box',
+          mt: '64px', // Để Sidebar nằm dưới Header
+          zIndex: 1000,
+        },
+      }}
+    >
       <List>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/dashboard">
-            <ListItemText primary="Dashboard" />
-          </ListItemButton>
+        <ListItem component={RouterLink} to="/dashboard">
+          <ListItemIcon>
+            <Dashboard />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
         </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/tasks">
-            <ListItemText primary="Tasks" />
-          </ListItemButton>
+        <ListItem component={RouterLink} to="/tasks">
+          <ListItemIcon>
+            <Assignment />
+          </ListItemIcon>
+          <ListItemText primary="Tasks" />
         </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/reports">
+        {user?.role === 'admin' && (
+          <ListItem component={RouterLink} to="/reports">
+            <ListItemIcon>
+              <Assessment />
+            </ListItemIcon>
             <ListItemText primary="Reports" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/profile">
-            <ListItemText primary="Profile" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/admin">
-            <ListItemText primary="Admin" />
-          </ListItemButton>
+          </ListItem>
+        )}
+        <ListItem component={RouterLink} to="/profile">
+          <ListItemIcon>
+            <Person />
+          </ListItemIcon>
+          <ListItemText primary="Profile" />
         </ListItem>
       </List>
     </Drawer>

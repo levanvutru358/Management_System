@@ -22,9 +22,9 @@ export class MailService {
     try {
       const emailUser = this.configService.get<string>('EMAIL_USER');
       const emailPass = this.configService.get<string>('EMAIL_PASS');
-      const mailHost = this.configService.get<string>('MAIL_HOST', '74.125.24.108');
+      const mailHost = this.configService.get<string>('MAIL_HOST', 'smtp.gmail.com');
       const mailPort = this.configService.get<number>('MAIL_PORT', 465);
-      const mailSecure = this.configService.get<boolean>('MAIL_SECURE', true);
+      const mailSecure = this.configService.get<string>('MAIL_SECURE', 'true') === 'true';
 
       if (!emailUser || !emailPass) {
         this.logger.error('EMAIL_USER hoặc EMAIL_PASS không được định nghĩa');
@@ -41,8 +41,8 @@ export class MailService {
           user: emailUser,
           pass: emailPass,
         },
-        connectionTimeout: 8000,
-        socketTimeout: 15000,
+        connectionTimeout: 30000,
+        socketTimeout: 30000,
       });
 
       this.verifyConnection();
@@ -70,6 +70,11 @@ export class MailService {
       const emailFrom = this.configService.get<string>('EMAIL_FROM');
       if (!emailFrom) {
         return { success: false, message: 'EMAIL_FROM không được định nghĩa' };
+      }
+
+      // Kiểm tra email hợp lệ
+      if (!options.to || !options.to.includes('@')) {
+        return { success: false, message: `Email không hợp lệ: ${options.to}` };
       }
 
       const mailOptions = {

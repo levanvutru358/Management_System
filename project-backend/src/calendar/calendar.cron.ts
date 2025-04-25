@@ -1,89 +1,110 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CalendarService } from './calendar.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { MailService } from '../mail/mail.service';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Event } from './entities/event.entity';
 
 @Injectable()
 export class CalendarCron {
   private readonly logger = new Logger(CalendarCron.name);
-  private remindedEvents: Set<string> = new Set();
 
   constructor(
     private readonly calendarService: CalendarService,
-    private readonly notificationsService: NotificationsService,
     private readonly mailService: MailService,
-    private readonly usersService: UsersService,
+    @InjectRepository(Event)
+    private eventRepository: Repository<Event>,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE) // Temporary for testing
+  @Cron(CronExpression.EVERY_10_MINUTES) // Để test, sau này đổi thành EVERY_DAY_AT_NOON
   async handleDeadlineReminders() {
-    const startTime = new Date().toISOString();
-    this.logger.log(`Bắt đầu công việc nhắc nhở lịch tại ${startTime}...`);
-    try {
-      this.logger.log('Tải danh sách người dùng...');
-      const users = await this.usersService.findAll();
-      this.logger.log(`Tìm thấy ${users.length} người dùng: ${users.map(u => u.email).join(', ')}`);
+    this.logger.log('Chạy công việc nhắc nhở lịch...');
 
-      for (const user of users) {
-        this.logger.log(`Kiểm tra sự kiện cho ${user.email} (ID ${user.id})`);
-        const events = await this.calendarService.findUpcomingDeadlines(user);
-        this.logger.log(
-          `Người dùng ${user.email}: ${events.length} sự kiện - ${JSON.stringify(
-            events.map((e) => ({ id: e.id, title: e.title, dueDate: e.dueDate })),
-          )}`,
-        );
+    const now = new Date();
+    const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-        if (events.length === 0) {
-          this.logger.log(`Không có sự kiện nào để nhắc nhở cho ${user.email}`);
+    // Lấy trực tiếp các sự kiện sắp đến hạn
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.assignedBy', 'assignedBy')
+      .leftJoinAndSelect('event.createdBy', 'createdBy')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('event.dueDate <= :oneDayLater AND event.dueDate >= :now', { oneDayLater, now })
+      .andWhere('event.status = :status', { status: 'pending' })
+      .andWhere('event.dueDate IS NOT NULL')
+      .getMany();
+
+    this.logger.log(`Tìm thấy ${events.length} sự kiện sắp đến hạn.`);
+
+    if (events.length === 0) {
+      this.logger.log('Không có sự kiện nào cần nhắc nhở.');
+      return;
+    }
+
+    for (const event of events) {
+      try {
+        // Kiểm tra dueDate trước khi sử dụng
+        if (!event.dueDate) {
+          this.logger.warn(`Sự kiện "${event.title}" không có dueDate, bỏ qua.`);
           continue;
         }
 
-        for (const event of events) {
-          const eventKey = `${user.id}-${event.id}`;
-          if (this.remindedEvents.has(eventKey)) {
-            this.logger.log(`Sự kiện "${event.title}" (ID ${event.id}) đã được nhắc nhở cho ${user.email}`);
+        // Gửi email cho assignedBy
+        if (event.assignedBy && event.assignedBy.email && event.assignedBy.name) {
+          await this.mailService.sendMail({
+            to: event.assignedBy.email,
+            subject: `⏰ Nhắc nhở: Hạn chót của "${event.title}" đang đến gần`,
+            text: `Kính gửi ${event.assignedBy.name},\n\nSự kiện "${event.title}" có hạn chót vào ${event.dueDate.toISOString()}.\n\nTrân trọng,\nHệ thống quản lý`,
+          });
+          this.logger.log(`Gửi email thành công đến ${event.assignedBy.email} cho sự kiện "${event.title}"`);
+        } else {
+          this.logger.warn(`Không thể gửi email cho assignedBy của sự kiện "${event.title}" vì thiếu thông tin.`);
+        }
+
+        // Gửi email cho reminderEmails (nếu có)
+        if (event.reminderEmails) {
+          let reminderEmails: string[] = [];
+
+          if (typeof event.reminderEmails === 'string') {
+            try {
+              reminderEmails = JSON.parse(event.reminderEmails);
+            } catch (parseError) {
+              this.logger.warn(`reminderEmails không phải JSON, coi như email đơn: ${event.reminderEmails}`);
+              reminderEmails = [event.reminderEmails];
+            }
+          } else {
+            reminderEmails = event.reminderEmails || [];
+          }
+
+          if (!Array.isArray(reminderEmails) || reminderEmails.length === 0) {
+            this.logger.warn(`Danh sách reminderEmails không hợp lệ cho sự kiện "${event.title}"`);
             continue;
           }
 
-          try {
-            if (!event.dueDate) {
-              this.logger.warn(`Sự kiện "${event.title}" (ID ${event.id}) không có dueDate, bỏ qua`);
+          for (const email of reminderEmails) {
+            if (!email || !email.includes('@')) {
+              this.logger.warn(`Email không hợp lệ trong reminderEmails: ${email}`);
               continue;
             }
 
-            this.logger.log(`Tạo thông báo cho sự kiện "${event.title}" (ID ${event.id})`);
-            await this.notificationsService.create({
-              userId: user.id,
-              message: `📅 Nhắc nhở: Sự kiện "${event.title}" sắp đến hạn vào ${event.dueDate.toISOString()}`,
-            });
-
-            this.logger.log(`Gửi email cho ${user.email} về sự kiện "${event.title}" (ID ${event.id})`);
-            const emailResult = await this.mailService.sendMail({
-              to: user.email,
-              subject: `⏰ Nhắc nhở: Hạn chót của ${event.title} đang đến gần`,
-              text: `Kính gửi ${user.name},\n\nSự kiện "${event.title}" có hạn chót vào ${event.dueDate.toISOString()}.\n\nTrân trọng,\nHệ thống quản lý`,
-            });
-
-            if (emailResult.success) {
-              this.logger.log(`Email gửi thành công đến ${user.email} cho sự kiện "${event.title}" (ID ${event.id})`);
-              this.remindedEvents.add(eventKey);
-            } else {
-              this.logger.error(`Gửi email thất bại cho ${user.email}: ${emailResult.message}`);
+            // Kiểm tra createdBy trước khi sử dụng
+            if (!event.createdBy || !event.createdBy.name) {
+              this.logger.warn(`Không thể gửi email nhắc nhở cho "${email}" vì thiếu thông tin createdBy.`);
+              continue;
             }
-          } catch (error) {
-            this.logger.error(
-              `Lỗi khi xử lý sự kiện "${event.title}" (ID ${event.id}) cho ${user.email}: ${error.message}`,
-              error.stack,
-            );
+
+            await this.mailService.sendMail({
+              to: email,
+              subject: `⏰ Nhắc nhở: Sự kiện "${event.title}" của ${event.createdBy.name} sắp đến hạn`,
+              text: `Kính gửi,\n\nSự kiện "${event.title}" của ${event.createdBy.name} có hạn chót vào ${event.dueDate.toISOString()}.\n\nTrân trọng,\nHệ thống quản lý`,
+            });
+            this.logger.log(`Gửi email nhắc nhở thành công đến ${email} cho sự kiện "${event.title}"`);
           }
         }
+      } catch (error) {
+        this.logger.error(`Lỗi khi xử lý sự kiện "${event.title}": ${error.message}`);
       }
-    } catch (error) {
-      this.logger.error(`Lỗi trong công việc nhắc nhở: ${error.message}`, error.stack);
     }
-    this.logger.log(`Kết thúc công việc nhắc nhở lịch tại ${new Date().toISOString()}`);
   }
 }

@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+// src/tasks/entities/task.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne } from 'typeorm';
 import { Comment } from './comment.entity';
+import { User } from '../../users/entities/user.entity';
 import { Event } from '../../calendar/entities/event.entity';
 
 @Entity()
@@ -14,24 +15,39 @@ export class Task {
   @Column({ nullable: true })
   description: string;
 
-  @Column({ default: 'Todo' })
-  status: string;
-
-  @Column({ default: 'medium' })
-  priority: string;
-
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'date', nullable: true })
   dueDate: Date;
 
-  @ManyToOne(() => User, (user) => user.tasks)
-  user: User;
+  @Column({
+    type: 'enum',
+    enum: ['Todo', 'InProgress', 'Done'],
+    default: 'Todo',
+  })
+  status: 'Todo' | 'InProgress' | 'Done';
+
+  @Column({
+    type: 'enum',
+    enum: ['low', 'medium', 'high'],
+    default: 'low',
+  })
+  priority: 'low' | 'medium' | 'high';
 
   @Column({ nullable: true })
   assignedUserId: number;
 
-  @OneToMany(() => Comment, (comment) => comment.task)
+  @ManyToOne(() => User, (user) => user.tasks, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  user: User;
+
+  @OneToMany(() => Comment, (comment) => comment.task, {
+    cascade: true,
+  })
   comments: Comment[];
 
-  @OneToMany(() => Event, (event) => event.task, { cascade: true })
+  @OneToMany(() => Event, (event) => event.task, {
+    cascade: true,
+  })
   events: Event[];
 }

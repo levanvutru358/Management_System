@@ -12,29 +12,32 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
   @Column()
   name: string;
 
   @Column({ nullable: true })
-  avatar: string;
-
-  @Column({ default: 'user' })
-  role: string;
+  avatar?: string;
 
   @Column({ default: true })
   isActive: boolean;
 
-  @Column({ default: false })
-  isEmailConfirmed: boolean;
-
-  @OneToMany(() => Event, (event) => event.user, { cascade: true })
-  events: Event[];
+  @Column({ type: 'enum', enum: ['admin', 'user'], default: 'user' })
+  role: 'admin' | 'user';
 
   @OneToMany(() => Task, (task) => task.user)
   tasks: Task[];
+
+  @OneToMany(() => Event, (event) => event.assignedBy)
+  assignedEvents: Event[];
+
+  @OneToMany(() => Event, (event) => event.createdBy)
+  createdEvents: Event[];
+
+  @OneToMany(() => Event, (event) => event.user)
+  events: Event[];
 
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];

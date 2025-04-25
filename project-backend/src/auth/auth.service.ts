@@ -2,14 +2,14 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
-  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config'; // Thêm ConfigService
+import { CreateUserDto } from '../users/dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { CreateUserDto } from '../users/dto/create-user.dto';
-import { MailService } from '../mail/mail.service';
+import { MailService } from '../integrations/mail.service';
+import { ConfigService } from '@nestjs/config';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -17,80 +17,64 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
-    private readonly configService: ConfigService, // Inject ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
-  async register(createUserDto: CreateUserDto) {
-    const { email, password, name } = createUserDto;
-
-    const existingUser = await this.usersService.findByEmail(email);
+  async register(createUserDto: CreateUserDto): Promise<{ message: string; userId: number }> {
+    // Kiểm tra email đã tồn tại chưa
+    const existingUser = await this.usersService.findByEmail(createUserDto.email);
     if (existingUser) {
-      throw new ConflictException('Email đã tồn tại');
+      throw new ConflictException('Email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await this.usersService.create({
-      ...createUserDto,
-      password: hashedPassword,
-      isEmailConfirmed: false, // Thêm thuộc tính xác nhận email
-    });
+    // Tạo user mới
+    const user = await this.usersService.create(createUserDto);
 
-    // Tạo token xác nhận email
-    const token = this.jwtService.sign(
-      { email: newUser.email, id: newUser.id },
-      { expiresIn: '24h' }, // Token hết hạn sau 24 giờ
-    );
-    const confirmationUrl = `http://localhost:3000/auth/confirm?token=${token}`;
+    // Gửi email chào mừng
+    try {
+      await this.mailService.sendMail({
+        to: user.email,
+        subject: 'Welcome to Task Management System',
+        text: `Hello ${user.name},\n\nYour account has been created successfully! We're excited to have you on board.\n\nBest regards,\nTask Management Team`,
+      });
+    } catch (error) {
+      console.error('Failed to send welcome email:', error.message);
+      // Không throw error vì gửi email thất bại không nên ảnh hưởng đến việc đăng ký
+    }
 
-    // Gửi email xác nhận
-    await this.mailService.sendMail({
-      to: email,
-      subject: 'Xác nhận email của bạn',
-      text: `Vui lòng xác nhận email bằng cách nhấp vào đây: ${confirmationUrl}`,
-    });
-
-    return {
-      message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác nhận.',
-      userId: newUser.id,
-    };
+    return { message: 'User registered successfully', userId: user.id };
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<{ access_token: string }> {
     const user = await this.usersService.findByEmail(email);
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !user.password) {
+      throw new UnauthorizedException('Tài khoản không hợp lệ hoặc chưa có mật khẩu');
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
     }
 
-    // Tạm thời bỏ qua bước kiểm tra xác nhận email trong môi trường phát triển
-    // if (!user.isEmailConfirmed) {
-    //   throw new UnauthorizedException('Email chưa được xác nhận. Vui lòng kiểm tra email để xác nhận.');
-    // }
+    const payload = { sub: user.id, email: user.email, role: user.role || 'user' };
+    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN') || '1d';
+    console.log('JWT_EXPIRES_IN:', expiresIn);
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN') || '1d'; // Đọc từ .env, mặc định 1 ngày
-    console.log('JWT_EXPIRES_IN:', expiresIn); // Thêm log để kiểm tra
     return {
       access_token: this.jwtService.sign(payload, { expiresIn }),
     };
   }
 
-  async confirmEmail(token: string) {
-    try {
-      const payload = this.jwtService.verify(token);
-      const user = await this.usersService.findByEmail(payload.email);
-      if (!user) {
-        throw new BadRequestException('Người dùng không tồn tại');
-      }
-
-      if (user.isEmailConfirmed) {
-        return { message: 'Email đã được xác nhận trước đó' };
-      }
-
-      user.isEmailConfirmed = true;
-      await this.usersService.update(user.id, user);
-      return { message: 'Email đã được xác nhận thành công' };
-    } catch (error) {
-      throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn');
+  async validateUser(email: string, password: string): Promise<Partial<User> | null> {
+    const user = await this.usersService.findByEmail(email);
+    if (user && user.password && (await bcrypt.compare(password, user.password))) {
+      const { password, ...result } = user;
+      return result;
     }
+    return null;
+  }
+
+  async confirmEmail(token: string): Promise<void> {
+    throw new Error('Email confirmation not implemented');
   }
 }

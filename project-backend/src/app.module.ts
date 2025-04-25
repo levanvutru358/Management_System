@@ -10,7 +10,6 @@ import { ReportsModule } from './reports/reports.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { AdminModule } from './admin/admin.module';
 import { CalendarModule } from './calendar/calendar.module';
-import { MailModule } from './mail/mail.module';
 import { AppController } from './app.controller';
 import { User } from './users/entities/user.entity';
 import { Task } from './tasks/entities/task.entity';
@@ -35,7 +34,7 @@ import { Comment } from './tasks/entities/comment.entity';
       password: 'tru12345',
       database: 'task_manager',
       entities: [User, Task, Event, Comment, Notification],
-      synchronize: true, 
+      synchronize: true, // Cảnh báo: Tắt synchronize trong production
       timezone: '+07:00',
     }),
     AuthModule,
@@ -46,7 +45,6 @@ import { Comment } from './tasks/entities/comment.entity';
     IntegrationsModule,
     AdminModule,
     CalendarModule,
-    MailModule,
   ],
   controllers: [AppController],
 })

@@ -22,9 +22,15 @@ export class IntegrationsService {
     let recipientEmail = 'cao101361@donga.edu.vn'; 
     if (task.assignedUserId) {
       const assignedUser = await this.usersService.findById(task.assignedUserId);
+      if (!assignedUser) {
+        throw new Error('Assigned user not found');
+      }
       recipientEmail = assignedUser.email;
     } else if (task.user) {
       const creator = await this.usersService.findById(task.user.id);
+      if (!creator) {
+        throw new Error('Creator not found');
+      }
       recipientEmail = creator.email;
     }
 

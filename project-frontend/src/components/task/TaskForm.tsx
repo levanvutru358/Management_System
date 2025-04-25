@@ -1,10 +1,10 @@
+// frontend/src/components/task/TaskForm.tsx
 import React from 'react';
 import { TextField, Button, MenuItem } from '@mui/material';
-import { useCustomForm } from '../../hooks/useForm';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { createTask } from '../../services/taskService';
-import { useAppDispatch } from '../../store/hooks';
-import { addTask } from '../../store/slices/taskSlice';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createTask, updateTask, Task } from '../../services/taskService';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -16,23 +16,44 @@ const taskSchema = z.object({
 
 type TaskFormData = z.infer<typeof taskSchema>;
 
-const TaskForm: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { register, handleSubmit, formState: { errors } } = useCustomForm<TaskFormData>({
-    schema: taskSchema,
-    defaultValues: {
-      status: 'todo',
-      priority: 'medium',
-    },
+interface TaskFormProps {
+  task?: Task | null; // Thêm null vào kiểu của task
+  onSubmit: () => void;
+}
+
+const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<TaskFormData>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: task
+      ? {
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate,
+          status: task.status,
+          priority: task.priority,
+        }
+      : {
+          status: 'todo' as const,
+          priority: 'medium' as const,
+          dueDate: new Date().toISOString().split('T')[0],
+        },
   });
 
-  const onSubmit = async (data: TaskFormData) => {
-    const newTask = await createTask(data);
-    dispatch(addTask(newTask));
+  const onFormSubmit = async (data: TaskFormData) => {
+    try {
+      if (task?.id) {
+        await updateTask(task.id, data);
+      } else {
+        await createTask(data);
+      }
+      onSubmit();
+    } catch (error) {
+      console.error('Error submitting task:', error);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onFormSubmit)}>
       <TextField
         label="Title"
         {...register('title')}
@@ -80,7 +101,7 @@ const TaskForm: React.FC = () => {
         <MenuItem value="high">High</MenuItem>
       </TextField>
       <Button type="submit" variant="contained" sx={{ mt: 2 }}>
-        Create Task
+        {task ? 'Update Task' : 'Create Task'}
       </Button>
     </form>
   );

@@ -1,3 +1,6 @@
+import { IsInt } from 'class-validator';
+
 export class AssignTaskDto {
-    assignedUserId: number;
-  }
+  @IsInt()
+  assignedUserId: number;
+}

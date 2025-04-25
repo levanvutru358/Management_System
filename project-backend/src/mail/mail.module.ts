@@ -11,9 +11,9 @@ import { ConfigService } from '@nestjs/config';
       useFactory: async (config: ConfigService) => {
         const emailUser = config.get<string>('EMAIL_USER');
         const emailPass = config.get<string>('EMAIL_PASS');
-        const mailHost = config.get<string>('MAIL_HOST', '74.125.24.108'); // Static IP fallback
+        const mailHost = config.get<string>('MAIL_HOST');
         const mailPort = config.get<number>('MAIL_PORT', 465);
-        const mailSecure = config.get<boolean>('MAIL_SECURE', true);
+        const mailSecure = config.get<string>('MAIL_SECURE') === 'true'; // Sửa để parse đúng thành boolean
 
         if (!emailUser || !emailPass) {
           throw new Error('EMAIL_USER và EMAIL_PASS phải được định nghĩa trong .env');
@@ -28,8 +28,6 @@ import { ConfigService } from '@nestjs/config';
               user: emailUser,
               pass: emailPass,
             },
-            connectionTimeout: 10000,
-            socketTimeout: 20000,
           },
           defaults: {
             from: `"Task Manager" <${emailUser}>`,

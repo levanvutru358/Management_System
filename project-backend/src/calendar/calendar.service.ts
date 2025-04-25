@@ -1,11 +1,12 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
-import { Event } from './entities/event.entity';
+import { Repository } from 'typeorm';
+import { Event, EventStatus } from './entities/event.entity'; // Thêm import EventStatus
+import { User } from '../users/entities/user.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { FilterEventDto } from './dto/filter-event.dto';
 import { CalendarView } from './interfaces/calendar-view.enum';
-import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class CalendarService {
@@ -14,204 +15,154 @@ export class CalendarService {
   constructor(
     @InjectRepository(Event)
     private eventRepository: Repository<Event>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
-  async create(createEventDto: CreateEventDto, user: User): Promise<Event> {
-    this.logger.log(`Tạo sự kiện mới: ${JSON.stringify(createEventDto)} cho user ${user?.email || 'unknown'}`);
+  async create(dto: CreateEventDto, user: User): Promise<Event> {
+    this.logger.log(`Bắt đầu tạo sự kiện: ${JSON.stringify(dto)} bởi user ${user.email}`);
 
-    if (!user?.id) {
-      this.logger.error('User không hợp lệ hoặc thiếu id');
-      throw new BadRequestException('User không hợp lệ');
+    const assignedBy = await this.userRepository.findOne({ where: { id: dto.assignedById } });
+    const createdBy = await this.userRepository.findOne({ where: { id: dto.createdById } });
+
+    if (!assignedBy || !createdBy) {
+      this.logger.error(
+        `Không tìm thấy assignedBy hoặc creator: assignedById=${dto.assignedById}, createdById=${dto.createdById}`,
+      );
+      throw new HttpException('assignedBy or Creator not found', HttpStatus.NOT_FOUND);
     }
 
-    if (!createEventDto.title || !createEventDto.startDate) {
-      this.logger.error('Thiếu title hoặc startDate');
-      throw new BadRequestException('Title và startDate là bắt buộc');
+    if (user.id !== createdBy.id) {
+      this.logger.warn(`Người dùng ${user.email} không có quyền tạo sự kiện với createdById=${dto.createdById}`);
+      throw new HttpException('Unauthorized: User does not match creator', HttpStatus.UNAUTHORIZED);
     }
 
-    const startDate = new Date(createEventDto.startDate);
-    if (isNaN(startDate.getTime())) {
-      this.logger.error(`startDate không hợp lệ: ${createEventDto.startDate}`);
-      throw new BadRequestException('startDate không hợp lệ');
+    const event = new Event();
+    event.title = dto.title;
+    event.description = dto.description;
+    event.startDate = new Date(dto.startDate);
+    event.dueDate = dto.dueDate ? new Date(dto.dueDate) : undefined;
+    event.assignedBy = assignedBy;
+    event.createdBy = createdBy;
+    event.status = EventStatus.PENDING; // Sử dụng enum thay vì string
+    event.user = createdBy;
+    event.reminderEmails = dto.reminderEmails;
+
+    const savedEvent = await this.eventRepository.save(event);
+    this.logger.log(`Tạo sự kiện thành công: id=${savedEvent.id}`);
+    return savedEvent;
+  }
+
+  async update(id: number, dto: UpdateEventDto, user: User): Promise<Event> {
+    this.logger.log(`Bắt đầu cập nhật sự kiện id=${id}`);
+
+    const event = await this.eventRepository.findOne({ where: { id }, relations: ['createdBy'] });
+    if (!event) {
+      this.logger.error(`Không tìm thấy sự kiện với id=${id}`);
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
 
-    let endDate: Date | null = null;
-    if (createEventDto.endDate) {
-      endDate = new Date(createEventDto.endDate);
-      if (isNaN(endDate.getTime())) {
-        this.logger.error(`endDate không hợp lệ: ${createEventDto.endDate}`);
-        throw new BadRequestException('endDate không hợp lệ');
+    // Kiểm tra createdBy có tồn tại không trước khi truy cập
+    if (!event.createdBy || event.createdBy.id !== user.id) {
+      this.logger.warn(`Người dùng ${user.email} không có quyền cập nhật sự kiện id=${id}`);
+      throw new HttpException('Unauthorized: User does not match creator', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (dto.assignedById) {
+      const assignedBy = await this.userRepository.findOne({ where: { id: dto.assignedById } });
+      if (!assignedBy) {
+        this.logger.error(`Không tìm thấy assignedBy với id=${dto.assignedById}`);
+        throw new HttpException('assignedBy not found', HttpStatus.NOT_FOUND);
       }
-      if (endDate < startDate) {
-        this.logger.error('endDate phải sau startDate');
-        throw new BadRequestException('endDate phải sau startDate');
-      }
+      event.assignedBy = assignedBy;
     }
 
-    let dueDate: Date | null = null;
-    if (createEventDto.dueDate) {
-      dueDate = new Date(createEventDto.dueDate);
-      if (isNaN(dueDate.getTime())) {
-        this.logger.error(`dueDate không hợp lệ: ${createEventDto.dueDate}`);
-        throw new BadRequestException('dueDate không hợp lệ');
-      }
+    Object.assign(event, dto);
+    if (dto.dueDate) {
+      event.dueDate = new Date(dto.dueDate);
     }
 
-   
-    const event = this.eventRepository.create({
-      title: createEventDto.title,
-      description: createEventDto.description || null,
-      startDate,
-      endDate,
-      dueDate,
-      user,
-    } as Event);
-
-    try {
-      const savedEvent = await this.eventRepository.save(event);
-      this.logger.log(`Sự kiện "${savedEvent.title}" đã được lưu với ID ${savedEvent.id}`);
-      return savedEvent;
-    } catch (error) {
-      this.logger.error(`Lỗi khi lưu sự kiện: ${error.message}`, error.stack);
-      throw new BadRequestException(`Không thể lưu sự kiện: ${error.message}`);
-    }
+    const updatedEvent = await this.eventRepository.save(event);
+    this.logger.log(`Cập nhật sự kiện thành công: id=${id}`);
+    return updatedEvent;
   }
 
   async findAll(view: CalendarView, date: string, user: User): Promise<Event[]> {
-    if (!user?.id) {
-      throw new BadRequestException('User không hợp lệ');
-    }
+    this.logger.log(`Lấy danh sách sự kiện: view=${view}, date=${date}, user=${user.email}`);
 
-    const start = new Date(date);
-    if (isNaN(start.getTime())) {
-      throw new BadRequestException('Ngày không hợp lệ');
-    }
+    const dto: FilterEventDto = { view, date };
+    let start: Date, end: Date;
+    const parsedDate = new Date(date);
 
-    let end: Date;
-    switch (view) {
-      case CalendarView.MONTH:
-        start.setDate(1);
-        end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
-        break;
-      case CalendarView.WEEK:
-        const dayOfWeek = start.getDay();
-        start.setDate(start.getDate() - dayOfWeek);
-        end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        break;
-      case CalendarView.DAY:
-        end = new Date(start);
-        break;
-      default:
-        throw new BadRequestException('Kiểu xem không hợp lệ');
-    }
-
-    return this.eventRepository.find({
-      where: {
-        user: { id: user.id },
-        startDate: Between(start, end),
-      },
-      relations: ['user'],
-    });
-  }
-
-  async findUpcomingDeadlines(user: User): Promise<Event[]> {
-    if (!user?.email) {
-      this.logger.error('User không hợp lệ hoặc thiếu email');
-      throw new BadRequestException('User không hợp lệ');
-    }
-
-    const now = new Date();
-    const startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000); // Look back 6 hours
-    const reminderTime = new Date(now.getTime() + 48 * 60 * 60 * 1000); // Look forward 48 hours
-
-    this.logger.log(
-      `Tìm kiếm sự kiện cho người dùng ${user.email} từ ${now.toISOString()} đến ${reminderTime.toISOString()}...`,
-    );
-
-    const events = await this.eventRepository.find({
-      where: {
-        user: { id: user.id },
-        dueDate: Between(now, reminderTime),
-      },
-      relations: ['user'],
-    });
-
-    if (events.length === 0) {
-      this.logger.log(`Không tìm thấy sự kiện nào cần nhắc nhở cho ${user.email}.`);
+    if (dto.view === CalendarView.DAY) {
+      start = new Date(parsedDate);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(parsedDate);
+      end.setHours(23, 59, 59, 999);
+    } else if (dto.view === CalendarView.WEEK) {
+      start = new Date(parsedDate);
+      start.setDate(parsedDate.getDate() - parsedDate.getDay());
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
     } else {
-      this.logger.log(
-        `Tìm thấy ${events.length} sự kiện cần nhắc nhở cho ${user.email}: ${events
-          .map((e) => e.title)
-          .join(', ')}`,
-      );
+      start = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1);
+      end = new Date(parsedDate.getFullYear(), parsedDate.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
     }
 
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.assignedBy', 'assignedBy')
+      .leftJoinAndSelect('event.createdBy', 'createdBy')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.task', 'task')
+      .where('event.startDate >= :start AND event.startDate <= :end', { start, end })
+      .andWhere('event.createdBy.id = :userId', { userId: user.id })
+      .getMany();
+
+    this.logger.log(`Tìm thấy ${events.length} sự kiện`);
     return events;
   }
 
-  async findOne(id: number): Promise<Event> {
-    const event = await this.eventRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
+  async findUpcomingDeadlines(user: User): Promise<Event[]> {
+    this.logger.log(`Lấy danh sách sự kiện sắp đến hạn cho user ${user.email}`);
 
-    if (!event) {
-      throw new NotFoundException(`Sự kiện với ID ${id} không tồn tại`);
-    }
+    const now = new Date();
+    const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    return event;
-  }
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.assignedBy', 'assignedBy')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.createdBy', 'createdBy') // Thêm join createdBy để đảm bảo truy vấn
+      .where('event.dueDate <= :oneDayLater AND event.dueDate >= :now', { oneDayLater, now })
+      .andWhere('event.status = :status', { status: EventStatus.PENDING }) // Sử dụng enum
+      .andWhere('event.dueDate IS NOT NULL')
+      .andWhere('event.createdBy.id = :userId', { userId: user.id })
+      .getMany();
 
-  async update(id: number, updateEventDto: UpdateEventDto, user: User): Promise<Event> {
-    const event = await this.findOne(id);
-
-    if (event.user.id !== user.id) {
-      throw new ForbiddenException('Bạn không có quyền cập nhật sự kiện này');
-    }
-
-    const updatedEvent = {
-      ...event,
-      ...updateEventDto,
-      startDate: updateEventDto.startDate ? new Date(updateEventDto.startDate) : event.startDate,
-      endDate: updateEventDto.endDate ? new Date(updateEventDto.endDate) : event.endDate,
-      dueDate: updateEventDto.dueDate ? new Date(updateEventDto.dueDate) : event.dueDate,
-    };
-
-    if (updatedEvent.startDate && isNaN(updatedEvent.startDate.getTime())) {
-      throw new BadRequestException('startDate không hợp lệ');
-    }
-    if (updatedEvent.endDate && isNaN(updatedEvent.endDate.getTime())) {
-      throw new BadRequestException('endDate không hợp lệ');
-    }
-    if (updatedEvent.dueDate && isNaN(updatedEvent.dueDate.getTime())) {
-      throw new BadRequestException('dueDate không hợp lệ');
-    }
-    if (updatedEvent.endDate && updatedEvent.startDate && updatedEvent.endDate < updatedEvent.startDate) {
-      throw new BadRequestException('endDate phải sau startDate');
-    }
-
-    try {
-      return await this.eventRepository.save(updatedEvent);
-    } catch (error) {
-      this.logger.error(`Lỗi khi cập nhật sự kiện ${id}: ${error.message}`);
-      throw new BadRequestException(`Không thể cập nhật sự kiện: ${error.message}`);
-    }
+    this.logger.log(`Tìm thấy ${events.length} sự kiện sắp đến hạn`);
+    return events;
   }
 
   async remove(id: number, user: User): Promise<void> {
-    const event = await this.findOne(id);
+    this.logger.log(`Bắt đầu xóa sự kiện id=${id}`);
 
-    if (event.user.id !== user.id) {
-      throw new ForbiddenException('Bạn không có quyền xóa sự kiện này');
+    const event = await this.eventRepository.findOne({ where: { id }, relations: ['createdBy'] });
+    if (!event) {
+      this.logger.error(`Không tìm thấy sự kiện với id=${id}`);
+      throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
 
-    try {
-      await this.eventRepository.remove(event);
-      this.logger.log(`Sự kiện với ID ${id} đã được xóa`);
-    } catch (error) {
-      this.logger.error(`Lỗi khi xóa sự kiện ${id}: ${error.message}`);
-      throw new BadRequestException(`Không thể xóa sự kiện: ${error.message}`);
+    // Kiểm tra createdBy có tồn tại không trước khi truy cập
+    if (!event.createdBy || event.createdBy.id !== user.id) {
+      this.logger.warn(`Người dùng ${user.email} không có quyền xóa sự kiện id=${id}`);
+      throw new HttpException('Unauthorized: User does not match creator', HttpStatus.UNAUTHORIZED);
     }
+
+    await this.eventRepository.delete(id);
+    this.logger.log(`Xóa sự kiện thành công: id=${id}`);
   }
 }

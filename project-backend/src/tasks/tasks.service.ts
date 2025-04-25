@@ -7,28 +7,41 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { User } from '../users/entities/user.entity';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class TasksService {
-  usersRepository: any;
   constructor(
     @InjectRepository(Task)
     private tasksRepository: Repository<Task>,
     @InjectRepository(Comment)
-    private commentsRepository: Repository<Comment>, // Thêm repository cho User
+    private commentsRepository: Repository<Comment>,
+    private usersService: UsersService,
   ) {}
 
   async create(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
-    const task = this.tasksRepository.create({ ...createTaskDto, user });
+    const task = this.tasksRepository.create({
+      title: createTaskDto.title,
+      description: createTaskDto.description,
+      dueDate: createTaskDto.dueDate ? new Date(createTaskDto.dueDate) : undefined,
+      status: createTaskDto.status || 'Todo',
+      priority: createTaskDto.priority || 'low',
+      assignedUserId: createTaskDto.assignedUserId || user.id,
+      user, // Quan hệ ManyToOne với User
+    });
+
     return this.tasksRepository.save(task);
   }
 
   async findAll(user: User): Promise<Task[]> {
-    return this.tasksRepository.find({ where: { user: { id: user.id } } });
+    return this.tasksRepository.find({
+      where: { assignedUserId: user.id },
+      relations: ['user'],
+    });
   }
 
   async findAllSystem(): Promise<Task[]> {
-    return this.tasksRepository.find();
+    return this.tasksRepository.find({ relations: ['user'] });
   }
 
   async findOne(id: number): Promise<Task> {
@@ -43,23 +56,29 @@ export class TasksService {
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto, user: User): Promise<Task> {
-    await this.findOne(id); // Throws if not found
-    await this.tasksRepository.update(id, updateTaskDto);
-    return this.findOne(id);
+    const task = await this.findOne(id);
+    this.checkPermission(task, user, true);
+    if (updateTaskDto.dueDate) {
+      updateTaskDto.dueDate = new Date(updateTaskDto.dueDate) as any;
+    }
+    Object.assign(task, updateTaskDto);
+    return this.tasksRepository.save(task);
   }
 
   async remove(id: number, user: User): Promise<void> {
-    await this.findOne(id); // Throws if not found
+    const task = await this.findOne(id);
+    this.checkPermission(task, user, true);
     await this.tasksRepository.delete(id);
   }
 
   async search(userId: number, keyword: string): Promise<Task[]> {
     return this.tasksRepository
       .createQueryBuilder('task')
-      .where('task.userId = :userId', { userId })
+      .where('task.assignedUserId = :userId', { userId }) // Sửa userId thành assignedUserId
       .andWhere('(task.title LIKE :keyword OR task.description LIKE :keyword)', {
         keyword: `%${keyword}%`,
       })
+      .leftJoinAndSelect('task.user', 'user')
       .getMany();
   }
 
@@ -77,57 +96,69 @@ export class TasksService {
   async findAllWithDeadline(): Promise<Task[]> {
     return this.tasksRepository.find({
       where: { dueDate: Not(IsNull()) },
-      relations: ['user'], // Changed from 'assignee' to 'user' for consistency
+      relations: ['user'],
     });
   }
 
   async assignTask(id: number, assignTaskDto: AssignTaskDto): Promise<Task> {
     const task = await this.findOne(id);
-    task.assignedUserId = assignTaskDto.assignedUserId;
+    const assignedUser = await this.usersService.findById(assignTaskDto.assignedUserId);
+    if (!assignedUser) {
+      throw new NotFoundException(`User with ID ${assignTaskDto.assignedUserId} not found`);
+    }
+    task.assignedUserId = assignedUser.id;
     return this.tasksRepository.save(task);
   }
 
   async addComment(taskId: number, userId: number, content: string): Promise<Comment> {
-    const task = await this.tasksRepository.findOneBy({ id: taskId });
-    const user = await this.usersRepository.findOneBy({ id: userId });
-    
-    if (!task || !user) {
-      throw new NotFoundException('Task or User not found');
+    const task = await this.findOne(taskId);
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
     }
-  
+
     const comment = this.commentsRepository.create({
       content,
       task,
-      user
+      user,
     });
-    
+
     return this.commentsRepository.save(comment);
   }
-  
+
   async getComments(taskId: number): Promise<Comment[]> {
-    return this.commentsRepository.find({ 
+    return this.commentsRepository.find({
       where: { task: { id: taskId } },
-      relations: ['user']
+      relations: ['user'],
     });
   }
 
-  async getStats(userId: number): Promise<any> {
-    const tasks = await this.tasksRepository.find({ where: { user: { id: userId } } });
+  async getStats(assignedUserId: number): Promise<any> {
+    const tasks = await this.tasksRepository.find({
+      where: { assignedUserId },
+      relations: ['user'],
+    });
     return {
       total: tasks.length,
-      todo: tasks.filter((t) => t.status === 'Todo').length, // Match case with entity default
-      inProgress: tasks.filter((t) => t.status === 'in-progress').length,
-      done: tasks.filter((t) => t.status === 'done').length,
-      overdue: tasks.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length,
+      todo: tasks.filter((t) => t.status === 'Todo').length,
+      inProgress: tasks.filter((t) => t.status === 'InProgress').length,
+      done: tasks.filter((t) => t.status === 'Done').length,
+      overdue: tasks.filter(
+        (t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done',
+      ).length,
     };
   }
 
-  checkPermission(task: Task, userId: number, requireEdit = false): void {
-    if (task.user.id !== userId && task.assignedUserId !== userId) {
+  checkPermission(task: Task, user: User, requireEdit = false): void {
+    const isOwner = task.user?.id === user.id;
+    const isAssigned = task.assignedUserId === user.id;
+
+    if (!isOwner && !isAssigned) {
       throw new ForbiddenException('You do not have permission to access this task');
     }
-    if (requireEdit && task.user.id !== userId) {
-      throw new ForbiddenException('Only the owner can edit this task');
+
+    if (requireEdit && !isOwner) {
+      throw new ForbiddenException('You do not have permission to edit this task');
     }
   }
 }

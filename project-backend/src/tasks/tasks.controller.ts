@@ -38,7 +38,7 @@ export class TasksController {
   @Delete(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-  remove(@Param('id') id: string, @GetUser() user: User) {
+  remove(@Param('id') id: number, @GetUser() user: User) {
     return this.tasksService.remove(+id, user);
   }
 
