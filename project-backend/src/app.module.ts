@@ -1,4 +1,3 @@
-// backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
@@ -10,6 +9,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { AdminModule } from './admin/admin.module';
 import { User } from './users/entities/user.entity';
 import { Task } from './tasks/entities/task.entity';
+import { Comment } from './tasks/entities/comment.entity';  // Thêm import Comment
 import { AppController } from './app.controller'; // Thêm import
 
 @Module({
@@ -21,7 +21,7 @@ import { AppController } from './app.controller'; // Thêm import
       username: 'root',
       password: 'Manh22072004',
       database: 'task_manager',
-      entities: [User, Task],
+      entities: [User, Task, Comment],  // Thêm Comment vào danh sách entities
       synchronize: true,
     }),
     AuthModule,

@@ -6,6 +6,9 @@ import { Comment } from './entities/comment.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
+import { TasksGateway } from './tasks.gateway';
+
+
 
 @Injectable()
 export class TasksService {
@@ -14,6 +17,7 @@ export class TasksService {
     private tasksRepository: Repository<Task>,
     @InjectRepository(Comment)
     private commentsRepository: Repository<Comment>,
+    private tasksGateway: TasksGateway,
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<Task> {
@@ -73,10 +77,31 @@ export class TasksService {
     return this.tasksRepository.save(task);
   }
 
-  async addComment(taskId: number, userId: number, content: string): Promise<Comment> {
-    const comment = this.commentsRepository.create({ taskId, userId, content });
-    return this.commentsRepository.save(comment);
+  async addComment(
+    taskId: number, 
+    userId: number, 
+    content: string, 
+    mentions?: string, 
+    fileUrl?: string, 
+    fileType?: string // Thêm tham số này
+  ): Promise<Comment> {
+    const comment = this.commentsRepository.create({
+      taskId,
+      userId,
+      content,
+      mentions: mentions ? mentions.split(',').map(Number) : [],
+      attachmentUrl: fileUrl || undefined,
+      attachmentType: fileType || undefined,
+    });
+    
+    const savedComment = await this.commentsRepository.save(comment);
+    
+    // Gửi comment mới cho tất cả client đang join task đó
+    this.tasksGateway.esendNewComment(taskId, savedComment);
+  
+    return savedComment;
   }
+  
 
   async getComments(taskId: number): Promise<Comment[]> {
     return this.commentsRepository.find({ where: { taskId } });
