@@ -1,9 +1,11 @@
-import { Controller, Get, Put, Body, UseGuards, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Controller, UseGuards } from '@nestjs/common/decorators/core';
+import { Body, Get, Put } from '@nestjs/common/decorators/http';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)

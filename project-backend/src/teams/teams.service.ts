@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +9,8 @@ import { User } from 'src/users/entities/user.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
+import { Injectable } from '@nestjs/common/decorators/core';
+import { TeamResponseDto } from './dto/team-response.dto';
 
 @Injectable()
 export class TeamsService {
@@ -22,61 +24,78 @@ export class TeamsService {
     private mailerService: MailerService,
   ) {}
 
-  async createTeam(createTeamDto: CreateTeamDto, userId: number): Promise<Team> {
-    try {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
-      if (!user) throw new NotFoundException('User not found');
+  async createTeam(createTeamDto: CreateTeamDto, userId: number): Promise<TeamResponseDto> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
-      const { members, ...teamData } = createTeamDto;
-  
-      const teamInsertResult = await this.teamRepository
-        .createQueryBuilder()
-        .insert()
-        .into(Team)
-        .values({ ...teamData, createdBy: user, createdAt: new Date() })
-        .execute();
-  
-      const teamId = teamInsertResult.identifiers[0].id;
-      const savedTeam = await this.teamRepository.findOne({ where: { id: teamId } });
-      if (!savedTeam) throw new NotFoundException('Team not found after creation');
-  
-      await this.teamMemberRepository
-        .createQueryBuilder()
-        .insert()
-        .into(TeamMember)
-        .values({ team: { id: savedTeam.id }, user: user, role: 'manager' })
-        .execute();
-  
-      if (members && members.length > 0) {
-        for (const memberDto of members) {
-          const memberUser = await this.userRepository.findOne({
-            where: { id: memberDto.userId },
-          });
-          if (!memberUser) throw new NotFoundException(`User with ID ${memberDto.userId} not found`);
-  
-          await this.teamMemberRepository
-            .createQueryBuilder()
-            .insert()
-            .into(TeamMember)
-            .values({
-              team: { id: savedTeam.id },
-              user: memberUser,
-              role: memberDto.role || 'member',
-            })
-            .execute();
-        }
+    const { teamMembers, ...teamData } = createTeamDto;
+
+    const teamInsertResult = await this.teamRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Team)
+      .values({ ...teamData, createdBy: user, createdAt: new Date() })
+      .execute();
+
+    const teamId = teamInsertResult.identifiers[0].id;
+    const savedTeam = await this.teamRepository.findOne({ where: { id: teamId } });
+    if (!savedTeam) throw new NotFoundException('Team not found after creation');
+
+    await this.teamMemberRepository
+      .createQueryBuilder()
+      .insert()
+      .into(TeamMember)
+      .values({ team: { id: savedTeam.id }, user: user, role: 'manager' })
+      .execute();
+
+    if (teamMembers && teamMembers.length > 0) {
+      for (const memberDto of teamMembers) {
+        const memberUser = await this.userRepository.findOne({
+          where: { id: memberDto.userId },
+        });
+        if (!memberUser) throw new NotFoundException(`User with ID ${memberDto.userId} not found`);
+
+        await this.teamMemberRepository
+          .createQueryBuilder()
+          .insert()
+          .into(TeamMember)
+          .values({
+            team: { id: savedTeam.id },
+            user: memberUser,
+            role: memberDto.role || 'member',
+          })
+          .execute();
       }
-  
-      const finalTeam = await this.teamRepository.findOne({
-        where: { id: teamId },
-        relations: ['createdBy', 'members', 'members.user'],
-      });
-      if (!finalTeam) throw new NotFoundException('Team not found'); 
-      return finalTeam;
-    } catch (error) {
-      console.error('Error in createTeam:', error);
-      throw new InternalServerErrorException('Failed to create team');
     }
+
+    const finalTeam = await this.teamRepository.findOne({
+      where: { id: teamId },
+      relations: ['createdBy', 'teamMembers', 'teamMembers.user'],
+    });
+    if (!finalTeam) throw new NotFoundException('Team not found'); 
+    const teamResponseDto: TeamResponseDto = {
+      id: finalTeam.id,
+      name: finalTeam.name,
+      description: finalTeam.description,
+      teamMembers: finalTeam.teamMembers.map(member => ({
+        id: member.id,
+        role: member.role,
+        user: {
+          id: member.user.id,
+          name: member.user.name,
+          role: member.user.role,
+          email: member.user.email, 
+        },
+      })),
+      createdBy: {
+        id: finalTeam.createdBy.id,
+        name: finalTeam.createdBy.name,
+        role: finalTeam.createdBy.role,
+        email: finalTeam.createdBy.email, 
+      },
+      createdAt: finalTeam.createdAt,
+    };
+    return teamResponseDto;
   }
 
   async inviteMember(teamId: number, inviteMemberDto: InviteMemberDto): Promise<void> {

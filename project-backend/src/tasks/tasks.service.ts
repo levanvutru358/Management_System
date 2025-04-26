@@ -1,46 +1,25 @@
-<<<<<<< HEAD
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
-=======
 import {
   Injectable,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Not, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { Comment } from './entities/comment.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
-<<<<<<< HEAD
-import { User } from '../users/entities/user.entity';
-=======
 import { Subtask } from './entities/subtask.entity';
 import { Attachment } from './entities/attachment.entity';
 import { User } from 'src/users/entities/user.entity';
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
 
 @Injectable()
 export class TasksService {
-  usersRepository: any;
   constructor(
     @InjectRepository(Task)
     private tasksRepository: Repository<Task>,
     @InjectRepository(Comment)
-<<<<<<< HEAD
-    private commentsRepository: Repository<Comment>, // Thêm repository cho User
-  ) {}
-
-  async create(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
-    const task = this.tasksRepository.create({ ...createTaskDto, user });
-    return this.tasksRepository.save(task);
-  }
-
-  async findAll(user: User): Promise<Task[]> {
-    return this.tasksRepository.find({ where: { user: { id: user.id } } });
-=======
     private commentsRepository: Repository<Comment>,
     @InjectRepository(Subtask)
     private subtasksRepository: Repository<Subtask>,
@@ -112,7 +91,6 @@ export class TasksService {
     return this.tasksRepository.find({
       relations: ['subtasks', 'attachments'],
     });
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
   }
 
   async findAllSystem(): Promise<Task[]> {
@@ -122,11 +100,7 @@ export class TasksService {
   async findOne(id: number): Promise<Task> {
     const task = await this.tasksRepository.findOne({
       where: { id },
-<<<<<<< HEAD
-      relations: ['user'],
-=======
       relations: ['subtasks', 'attachments'],
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
     });
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -134,16 +108,6 @@ export class TasksService {
     return task;
   }
 
-<<<<<<< HEAD
-  async update(id: number, updateTaskDto: UpdateTaskDto, user: User): Promise<Task> {
-    await this.findOne(id); // Throws if not found
-    await this.tasksRepository.update(id, updateTaskDto);
-    return this.findOne(id);
-  }
-
-  async remove(id: number, user: User): Promise<void> {
-    await this.findOne(id); // Throws if not found
-=======
   async remove(
     id: number,
     user: { id: number; role: string },
@@ -160,7 +124,6 @@ export class TasksService {
       );
     }
 
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
     await this.tasksRepository.delete(id);
     return { message: `Task with ID ${id} deleted successfully` };
   }
@@ -179,23 +142,6 @@ export class TasksService {
   }
 
   async findAllDueSoon(): Promise<Task[]> {
-<<<<<<< HEAD
-    const now = new Date();
-    const next48Hours = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    return this.tasksRepository.find({
-      where: {
-        dueDate: Between(now, next48Hours),
-      },
-      relations: ['user'],
-    });
-  }
-
-  async findAllWithDeadline(): Promise<Task[]> {
-    return this.tasksRepository.find({
-      where: { dueDate: Not(IsNull()) },
-      relations: ['user'], // Changed from 'assignee' to 'user' for consistency
-    });
-=======
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
@@ -206,7 +152,6 @@ export class TasksService {
       .where('task.dueDate <= :tomorrow', { tomorrow })
       .andWhere('task.status != :done', { done: 'done' })
       .getMany();
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
   }
 
   async assignTask(
@@ -220,71 +165,36 @@ export class TasksService {
     return this.tasksRepository.save(task);
   }
 
-<<<<<<< HEAD
-  async addComment(taskId: number, userId: number, content: string): Promise<Comment> {
-    const task = await this.tasksRepository.findOneBy({ id: taskId });
-    const user = await this.usersRepository.findOneBy({ id: userId });
-    
-    if (!task || !user) {
-      throw new NotFoundException('Task or User not found');
-    }
-  
-    const comment = this.commentsRepository.create({
-      content,
-      task,
-      user
-    });
-    
-=======
   async addComment(
     taskId: number,
     userId: number,
     content: string,
   ): Promise<Comment> {
     const comment = this.commentsRepository.create({ taskId, userId, content });
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
     return this.commentsRepository.save(comment);
   }
-  
+
   async getComments(taskId: number): Promise<Comment[]> {
-    return this.commentsRepository.find({ 
-      where: { task: { id: taskId } },
-      relations: ['user']
-    });
+    return this.commentsRepository.find({ where: { taskId } });
   }
 
   async getStats(userId: number): Promise<any> {
-<<<<<<< HEAD
-    const tasks = await this.tasksRepository.find({ where: { user: { id: userId } } });
-=======
     const tasks = await this.tasksRepository.find({
       where: { userId },
       relations: ['subtasks'],
     });
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
     return {
       total: tasks.length,
-      todo: tasks.filter((t) => t.status === 'Todo').length, // Match case with entity default
+      todo: tasks.filter((t) => t.status === 'todo').length,
       inProgress: tasks.filter((t) => t.status === 'in-progress').length,
       done: tasks.filter((t) => t.status === 'done').length,
-<<<<<<< HEAD
-      overdue: tasks.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length,
-=======
       overdue: tasks.filter(
         (t) => new Date(t.dueDate) < new Date() && t.status !== 'done',
       ).length,
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
     };
   }
 
   checkPermission(task: Task, userId: number, requireEdit = false): void {
-<<<<<<< HEAD
-    if (task.user.id !== userId && task.assignedUserId !== userId) {
-      throw new ForbiddenException('You do not have permission to access this task');
-    }
-    if (requireEdit && task.user.id !== userId) {
-      throw new ForbiddenException('Only the owner can edit this task');
-=======
     if (task.userId !== userId && task.assignedUserId !== userId) {
       throw new ForbiddenException(
         'You do not have permission to access this task',
@@ -298,7 +208,6 @@ export class TasksService {
       throw new ForbiddenException(
         'You do not have permission to edit this task',
       );
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
     }
   }
 }

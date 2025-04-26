@@ -1,11 +1,12 @@
 // backend/src/users/users.service.ts
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt'; // Thêm bcrypt
+import { Injectable } from '@nestjs/common/decorators/core';
 
 @Injectable()
 export class UsersService {

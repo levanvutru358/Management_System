@@ -40,15 +40,6 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-<<<<<<< HEAD
-  create(@GetUser() user: User, @Body() createTaskDto: CreateTaskDto) {
-    return this.tasksService.create(createTaskDto, user);
-  }
-
-  @Get()
-  findAll(@GetUser() user: User) {
-    return this.tasksService.findAll(user);
-=======
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], {
       storage,
@@ -86,20 +77,11 @@ export class TasksController {
     };
 
     return this.tasksService.create(createTaskDto);
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
   }
 
   @Put(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-<<<<<<< HEAD
-  update(
-    @Param('id') id: string,
-    @Body() updateTaskDto: UpdateTaskDto,
-    @GetUser() user: User,
-  ) {
-    return this.tasksService.update(+id, updateTaskDto, user);
-=======
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], {
       storage,
@@ -136,7 +118,6 @@ export class TasksController {
     };
 
     return this.tasksService.update(+id, updateTaskDto);
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
   }
 
   @Get()
@@ -159,17 +140,12 @@ export class TasksController {
   @Post(':id/assign')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-<<<<<<< HEAD
-  assign(@Param('id') id: string, @Body() assignTaskDto: AssignTaskDto) {
-    return this.tasksService.assignTask(+id, assignTaskDto);
-=======
   assign(
     @Param('id') id: string,
     @Body() assignTaskDto: AssignTaskDto,
     @GetUser() user: User,
   ) {
     return this.tasksService.assignTask(+id, assignTaskDto, user);
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
   }
 
   @Post(':id/comments')

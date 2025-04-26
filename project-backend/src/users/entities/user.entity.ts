@@ -17,8 +17,8 @@ export class User {
   @Column()
   name: string;
 
-  @Column({ nullable: true })
-  avatar: string;
+  // @Column({ nullable: true })
+  // avatar: string;
 
   @Column({ default: true })
   isActive: boolean;
@@ -29,9 +29,9 @@ export class User {
   @OneToMany(() => Team, (team) => team.createdBy, { cascade: false })
   teams: Team[];
 
-  @OneToMany(() => Task, (task) => task.user)
+  @OneToMany(() => Task, (task) => task.userId)
   tasks: Task[];
 
-  @OneToMany(() => Comment, (comment) => comment.user)
+  @OneToMany(() => Comment, (comment) => comment.userId)
   comments: Comment[];
 }

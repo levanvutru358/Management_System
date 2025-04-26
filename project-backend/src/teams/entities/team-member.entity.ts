@@ -7,7 +7,7 @@ export class TeamMember {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Team, (team) => team.members, { cascade: false })
+  @ManyToOne(() => Team, (team) => team.teamMembers, { cascade: false })
   team: Team;
 
   @ManyToOne(() => User, { cascade: false })

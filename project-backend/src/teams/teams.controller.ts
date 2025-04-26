@@ -1,4 +1,3 @@
-import { Controller, Get, Post, Body, Request, Patch, Param, Delete, Put, ParseIntPipe } from '@nestjs/common';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -6,8 +5,14 @@ import { Team } from './entities/team.entity';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { TeamMember } from './entities/team-member.entity';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
+import { Controller, UseGuards } from '@nestjs/common/decorators/core';
+import { Body, Delete, Get, Param, Post, Put, Request } from '@nestjs/common/decorators/http';
+import { ParseIntPipe } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { TeamResponseDto } from './dto/team-response.dto';
 
 @Controller('teams')
+@UseGuards(JwtAuthGuard)
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
@@ -41,8 +46,11 @@ export class TeamsController {
   }
 
   @Post()
-  createTeam(@Body() createTeamDto: CreateTeamDto): Promise<Team> {
-    const userId = 1;
+  createTeam(
+    @Body() createTeamDto: CreateTeamDto,
+    @Request() req: any
+  ): Promise<TeamResponseDto> {
+    const userId = req.user.id;
     const team = this.teamsService.createTeam(createTeamDto, userId);
     return team;
   }

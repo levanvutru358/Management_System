@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { TasksService } from '../tasks/tasks.service';
-import { User } from '../users/entities/user.entity';
+import { Injectable } from '@nestjs/common/decorators/core';
 
 @Injectable()
 export class AdminService {
@@ -26,13 +25,10 @@ export class AdminService {
     return this.tasksService.findAllSystem();
   }
 
-<<<<<<< HEAD
-  async deleteTask(id: number, user: User): Promise<void> {
-    return this.tasksService.remove(id, user);
-=======
+
   async deleteTask(id: number) {
     const fakeAdminUser = { id: 0, role: 'admin' }; // hoặc lấy user admin thực tế nếu có
     return this.tasksService.remove(id, fakeAdminUser);
->>>>>>> 3631d38f0d4ff9973d2afc04fbed560ff07908df
   }
 }
+

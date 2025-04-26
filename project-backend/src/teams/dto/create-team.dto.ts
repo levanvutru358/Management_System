@@ -1,4 +1,3 @@
-// src/teams/dto/create-team.dto.ts
 import { IsString, IsNotEmpty, MinLength, IsOptional, IsArray } from 'class-validator';
 import { CreateTeamMemberDto } from './create-team-member.dto';
 
@@ -14,5 +13,5 @@ export class CreateTeamDto {
 
   @IsArray()
   @IsOptional()
-  members?: CreateTeamMemberDto[];
+  teamMembers?: CreateTeamMemberDto[];
 }

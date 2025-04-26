@@ -14,8 +14,11 @@ import { Task } from './tasks/entities/task.entity';
 import { Subtask } from './tasks/entities/subtask.entity';
 import { Attachment } from './tasks/entities/attachment.entity';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { Module } from '@nestjs/common';
 import { TeamsModule } from './teams/teams.module';
+import { Module } from '@nestjs/common/decorators/modules';
+import { Team } from './teams/entities/team.entity';
+import { TeamMember } from './teams/entities/team-member.entity';
+import { Comment } from './tasks/entities/comment.entity';
 
 @Module({
   imports: [
@@ -24,10 +27,10 @@ import { TeamsModule } from './teams/teams.module';
       type: 'mysql',
       host: 'localhost',
       port: 3306,
-      username: 'tru123',
-      password: 'tru12345',
+      username: 'root',
+      password: 'khoahuy04102004',
       database: 'task_manager',
-      entities: [User, Task, Subtask, Attachment],
+      entities: [User, Task, Subtask, Attachment, Team, TeamMember, Comment],
       synchronize: true,
     }),
     MailerModule.forRoot({

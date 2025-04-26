@@ -14,7 +14,7 @@ export class Team {
     description: string;
 
     @OneToMany(() => TeamMember, (teamMember) => teamMember.team, { cascade: false })
-    members: TeamMember[];
+    teamMembers: TeamMember[];
 
     @ManyToOne(() => User, (user) => user.teams, { cascade: false })
     @JoinColumn({ name: 'createdBy' })

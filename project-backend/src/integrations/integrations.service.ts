@@ -23,8 +23,8 @@ export class IntegrationsService {
     if (task.assignedUserId) {
       const assignedUser = await this.usersService.findById(task.assignedUserId);
       recipientEmail = assignedUser.email;
-    } else if (task.user) {
-      const creator = await this.usersService.findById(task.user.id);
+    } else if (task.userId) {
+      const creator = await this.usersService.findById(task.userId);
       recipientEmail = creator.email;
     }
 

@@ -1,4 +1,5 @@
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common/decorators/core';
 import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
