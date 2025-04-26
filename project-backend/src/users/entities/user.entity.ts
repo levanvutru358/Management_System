@@ -20,18 +20,18 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
-  @Column({ default: 'user' })
-  role: string;
-
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ type: 'enum', enum: ['admin', 'user'], default: 'user' }) // Chỉ định rõ type: 'enum'
+  role: 'admin' | 'user';
+
+  @OneToMany(() => Team, (team) => team.createdBy, { cascade: false })
+  teams: Team[];
 
   @OneToMany(() => Task, (task) => task.user)
   tasks: Task[];
 
   @OneToMany(() => Comment, (comment) => comment.user)
   comments: Comment[];
-
-  @OneToMany(() => Team, (team) => team.createdBy, { cascade: false })
-  teams: Team[];
 }

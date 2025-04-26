@@ -1,4 +1,5 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -10,13 +11,11 @@ import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 import { User } from './users/entities/user.entity';
 import { Task } from './tasks/entities/task.entity';
-import { Comment } from './tasks/entities/comment.entity';
-import { ConfigModule } from '@nestjs/config';
-import { TeamsModule } from './teams/teams.module';
+import { Subtask } from './tasks/entities/subtask.entity';
+import { Attachment } from './tasks/entities/attachment.entity';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { Module } from '@nestjs/common';
-import { Team } from './teams/entities/team.entity';
-import { TeamMember } from './teams/entities/team-member.entity';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
   imports: [
@@ -28,7 +27,7 @@ import { TeamMember } from './teams/entities/team-member.entity';
       username: 'tru123',
       password: 'tru12345',
       database: 'task_manager',
-      entities: [User, Task ,Comment, Team, TeamMember], 
+      entities: [User, Task, Subtask, Attachment],
       synchronize: true,
     }),
     MailerModule.forRoot({

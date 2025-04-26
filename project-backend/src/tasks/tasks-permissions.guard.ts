@@ -22,7 +22,7 @@ export class TasksPermissionsGuard implements CanActivate {
 
     // Kiểm tra quyền chỉnh sửa (nếu cần)
     const requireEdit = this.reflector.get<boolean>('requireEdit', context.getHandler());
-    
+
     // Kiểm tra quyền truy cập
     this.tasksService.checkPermission(task, user.id, requireEdit);
 

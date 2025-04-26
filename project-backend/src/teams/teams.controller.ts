@@ -48,36 +48,55 @@ export class TeamsController {
   }
 
   @Post(':teamId/invite')
-  inviteMember(@Param('teamId', ParseIntPipe) teamId: number, @Body() inviteMemberDto: InviteMemberDto): Promise<void> {
+  inviteMember(
+    @Param('teamId', ParseIntPipe) teamId: number, 
+    @Body() inviteMemberDto: InviteMemberDto
+  ): Promise<void> {
     const inviteMember = this.teamsService.inviteMember(teamId, inviteMemberDto);
     return inviteMember;
   }
 
   @Put(':teamId')
-  updateTeam(@Param('teamId', ParseIntPipe) teamId: number, @Body() updateTeamDto: UpdateTeamDto): Promise<Team> {
-    // const userId = req.user.id;
-    const team = this.teamsService.updateTeam(teamId, updateTeamDto);
+  updateTeam(
+    @Param('teamId', ParseIntPipe) teamId: number, 
+    @Body() updateTeamDto: UpdateTeamDto,
+    @Request() req
+  ): Promise<Team> {
+    const userId = req.user.id;
+    const team = this.teamsService.updateTeam(teamId, updateTeamDto, userId);
     return team;
   }
 
   @Put(':teamId/members/:memberId')
-  updateMember(@Param('teamId', ParseIntPipe) teamId: number, @Param('memberId', ParseIntPipe) memberId: number, @Body() updateTeamMemberDto: UpdateTeamMemberDto): Promise<TeamMember> {
-    // const userId = req.user.id;
-    const member = this.teamsService.updateMember(teamId, memberId, updateTeamMemberDto);
+  updateMember(
+    @Param('teamId', ParseIntPipe) teamId: number, 
+    @Param('memberId', ParseIntPipe) memberId: number, 
+    @Body() updateTeamMemberDto: UpdateTeamMemberDto,
+    @Request() req
+  ): Promise<TeamMember> {
+    const userId = req.user.id;
+    const member = this.teamsService.updateMember(teamId, memberId, updateTeamMemberDto, userId);
     return member;
   }
 
   @Delete(':teamId')
-  removeTeam(@Param('teamId', ParseIntPipe) teamId: number): Promise<void> {
-    // const userId = req.user.id;
-    const team = this.teamsService.removeTeam(teamId);
+  removeTeam(
+    @Param('teamId', ParseIntPipe) teamId: number,
+    @Request() req
+  ): Promise<void> {
+    const userId = req.user.id;
+    const team = this.teamsService.removeTeam(teamId, userId);
     return team;
   }
 
   @Delete(':teamId/members/:memberId')
-  removeMember(@Param('teamId', ParseIntPipe) teamId: number, @Param('memberId', ParseIntPipe) memberId: number): Promise<void> {
-    // const userId = req.user.id;
-    const member = this.teamsService.removeMember(teamId, memberId);
+  removeMember(
+    @Param('teamId', ParseIntPipe) teamId: number, 
+    @Param('memberId', ParseIntPipe) memberId: number,
+    @Request() req
+  ): Promise<void> {
+    const userId = req.user.id;
+    const member = this.teamsService.removeMember(teamId, memberId, userId);
     return member;
   }
 }
