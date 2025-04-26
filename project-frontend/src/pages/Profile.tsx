@@ -1,18 +1,25 @@
-// frontend/src/pages/Profile.tsx
-import React, { useEffect, useState } from 'react';
-import { Container, Typography, Box, Paper, CircularProgress, Alert } from '@mui/material';
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer';
-import { getCurrentUser } from '../services/authService';
-import api from '../services/api';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import {
+  Container,
+  Typography,
+  Box,
+  Paper,
+  CircularProgress,
+  Alert,
+  Toolbar,
+} from "@mui/material";
+import Header from "../components/layout/Header";
+import Sidebar from "../components/layout/Sidebar";
+import Footer from "../components/layout/Footer";
+import { getCurrentUser } from "../services/authService";
+import api from "../services/api";
+import { Navigate } from "react-router-dom";
 
 interface UserProfile {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
 }
 
 const Profile: React.FC = () => {
@@ -25,10 +32,10 @@ const Profile: React.FC = () => {
     const fetchProfile = async () => {
       if (!user) return;
       try {
-        const response = await api.get('/users/me');
+        const response = await api.get("/users/me");
         setProfile(response.data);
       } catch (err) {
-        setError('Failed to load profile');
+        setError("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -41,11 +48,12 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Header />
-      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+      <Toolbar /> {/* Fix che nội dung do AppBar fixed */}
+      <Box sx={{ display: "flex", flexGrow: 1 }}>
         <Sidebar />
-        <Container sx={{ ml: '5px', mt: 2, mb: 2 }}>
+        <Container sx={{ ml: "5px", mt: 2, mb: 2 }}>
           <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
             <Typography variant="h4" gutterBottom>
               Profile
@@ -53,10 +61,16 @@ const Profile: React.FC = () => {
             {loading && <CircularProgress />}
             {error && <Alert severity="error">{error}</Alert>}
             {profile && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography variant="body1"><strong>Name:</strong> {profile.name}</Typography>
-                <Typography variant="body1"><strong>Email:</strong> {profile.email}</Typography>
-                <Typography variant="body1"><strong>Role:</strong> {profile.role}</Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Typography variant="body1">
+                  <strong>Name:</strong> {profile.name}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Email:</strong> {profile.email}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Role:</strong> {profile.role}
+                </Typography>
               </Box>
             )}
           </Paper>

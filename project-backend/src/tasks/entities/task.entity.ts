@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Subtask } from './subtask.entity';
+import { Attachment } from './attachment.entity';
 
 @Entity()
 export class Task {
@@ -8,10 +10,7 @@ export class Task {
   @Column()
   title: string;
 
-  @Column()
-  description: string;
-
-  @Column()
+  @Column({ nullable: true })
   dueDate: string;
 
   @Column()
@@ -25,4 +24,15 @@ export class Task {
 
   @Column({ nullable: true })
   assignedUserId: number;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @OneToMany(() => Subtask, (subtask) => subtask.task, { cascade: true })
+  subtasks: Subtask[];
+
+  @OneToMany(() => Attachment, (attachment) => attachment.task, {
+    cascade: true,
+  })
+  attachments: Attachment[];
 }

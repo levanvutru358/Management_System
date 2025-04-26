@@ -26,6 +26,7 @@ export class AdminService {
   }
 
   async deleteTask(id: number) {
-    return this.tasksService.remove(id);
+    const fakeAdminUser = { id: 0, role: 'admin' }; // hoặc lấy user admin thực tế nếu có
+    return this.tasksService.remove(id, fakeAdminUser);
   }
 }

@@ -11,6 +11,8 @@ import { AdminModule } from './admin/admin.module';
 import { User } from './users/entities/user.entity';
 import { Task } from './tasks/entities/task.entity';
 import { AppController } from './app.controller'; // Thêm import
+import { Subtask } from './tasks/entities/subtask.entity';
+import { Attachment } from './tasks/entities/attachment.entity';
 
 @Module({
   imports: [
@@ -21,7 +23,7 @@ import { AppController } from './app.controller'; // Thêm import
       username: 'tru123',
       password: 'tru12345',
       database: 'task_manager',
-      entities: [User, Task],
+      entities: [User, Task, Subtask, Attachment],
       synchronize: true,
     }),
     AuthModule,

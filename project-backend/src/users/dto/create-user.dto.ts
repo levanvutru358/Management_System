@@ -1,6 +1,16 @@
+// users/dto/create-user.dto.ts
+import { IsString, IsEmail, IsEnum } from 'class-validator';
+
 export class CreateUserDto {
-    email: string;
-    password: string;
-    name: string;
-    role?: 'admin' | 'user';
-  }
+  @IsString()
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  password: string;
+
+  @IsEnum(['admin', 'user'])
+  role: 'admin' | 'user';
+}

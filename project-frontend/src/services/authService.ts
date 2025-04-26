@@ -1,19 +1,19 @@
 // frontend/src/services/authService.ts
-import api from './api';
-import { jwtDecode } from 'jwt-decode'; // Import rõ ràng từ jwt-decode
+import api from "./api";
+import { jwtDecode } from "jwt-decode"; // Import rõ ràng từ jwt-decode
 
 export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
 }
 
 interface RegisterData {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
 }
 
 interface LoginData {
@@ -33,18 +33,22 @@ interface AuthResponse {
 interface JwtPayload {
   sub: number;
   email: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
 }
 
-export const register = async (data: RegisterData): Promise<RegisterResponse> => {
-  const response = await api.post('/auth/register', data);
+export const register = async (
+  data: RegisterData
+): Promise<RegisterResponse> => {
+  const response = await api.post("/auth/register", data);
   return response.data;
 };
 
-export const login = async (data: LoginData): Promise<{ user: User; token: string }> => {
-  const response = await api.post('/auth/login', data);
+export const login = async (
+  data: LoginData
+): Promise<{ user: User; token: string }> => {
+  const response = await api.post("/auth/login", data);
   const token = response.data.access_token;
-  localStorage.setItem('token', token);
+  localStorage.setItem("token", token);
 
   // Sử dụng jwtDecode và ép kiểu rõ ràng
   const decoded: JwtPayload = jwtDecode(token);
@@ -52,18 +56,18 @@ export const login = async (data: LoginData): Promise<{ user: User; token: strin
     id: decoded.sub,
     email: decoded.email,
     role: decoded.role,
-    name: '',
+    name: "",
   };
 
   return { user, token };
 };
 
 export const logout = async (): Promise<void> => {
-  localStorage.removeItem('token');
+  localStorage.removeItem("token");
 };
 
 export const getCurrentUser = (): User | null => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (!token) return null;
 
   try {
@@ -73,10 +77,10 @@ export const getCurrentUser = (): User | null => {
       id: decoded.sub,
       email: decoded.email,
       role: decoded.role,
-      name: '',
+      name: "",
     };
   } catch (error) {
-    console.error('Error decoding token:', error);
+    console.error("Error decoding token:", error);
     return null;
   }
 };

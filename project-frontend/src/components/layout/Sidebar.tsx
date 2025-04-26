@@ -1,15 +1,29 @@
 // frontend/src/components/layout/Sidebar.tsx
-import React from 'react';
-import { Drawer, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
-import { Assignment, Assessment, Dashboard, Person } from '@mui/icons-material';
-import { getCurrentUser } from '../../services/authService';
+import React from "react";
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+} from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import { Assignment, Assessment, Dashboard, Person } from "@mui/icons-material";
+import { getCurrentUser } from "../../services/authService";
 
-// Định nghĩa type cho Link để TypeScript hiểu
+// ✅ LinkProps dùng cho SidebarLink
 interface LinkProps {
   to: string;
   children: React.ReactNode;
+  icon: React.ReactNode;
 }
+
+const SidebarLink: React.FC<LinkProps> = ({ to, children, icon }) => (
+  <ListItem component={RouterLink} to={to}>
+    <ListItemIcon>{icon}</ListItemIcon>
+    <ListItemText primary={children} />
+  </ListItem>
+);
 
 const Sidebar: React.FC = () => {
   const user = getCurrentUser();
@@ -22,39 +36,27 @@ const Sidebar: React.FC = () => {
         flexShrink: 0,
         [`& .MuiDrawer-paper`]: {
           width: 200,
-          boxSizing: 'border-box',
-          mt: '64px', // Để Sidebar nằm dưới Header
+          boxSizing: "border-box",
+          mt: "64px", // dưới Header
           zIndex: 1000,
         },
       }}
     >
       <List>
-        <ListItem component={RouterLink} to="/dashboard">
-          <ListItemIcon>
-            <Dashboard />
-          </ListItemIcon>
-          <ListItemText primary="Dashboard" />
-        </ListItem>
-        <ListItem component={RouterLink} to="/tasks">
-          <ListItemIcon>
-            <Assignment />
-          </ListItemIcon>
-          <ListItemText primary="Tasks" />
-        </ListItem>
-        {user?.role === 'admin' && (
-          <ListItem component={RouterLink} to="/reports">
-            <ListItemIcon>
-              <Assessment />
-            </ListItemIcon>
-            <ListItemText primary="Reports" />
-          </ListItem>
+        <SidebarLink to="/dashboard" icon={<Dashboard />}>
+          Dashboard
+        </SidebarLink>
+        <SidebarLink to="/tasks" icon={<Assignment />}>
+          Tasks
+        </SidebarLink>
+        {user?.role === "admin" && (
+          <SidebarLink to="/reports" icon={<Assessment />}>
+            Reports
+          </SidebarLink>
         )}
-        <ListItem component={RouterLink} to="/profile">
-          <ListItemIcon>
-            <Person />
-          </ListItemIcon>
-          <ListItemText primary="Profile" />
-        </ListItem>
+        <SidebarLink to="/profile" icon={<Person />}>
+          Profile
+        </SidebarLink>
       </List>
     </Drawer>
   );
