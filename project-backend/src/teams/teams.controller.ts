@@ -68,8 +68,8 @@ export class TeamsController {
   updateTeam(
     @Param('teamId', ParseIntPipe) teamId: number, 
     @Body() updateTeamDto: UpdateTeamDto,
-    @Request() req
-  ): Promise<Team> {
+    @Request() req: any
+  ): Promise<TeamResponseDto> {
     const userId = req.user.id;
     const team = this.teamsService.updateTeam(teamId, updateTeamDto, userId);
     return team;
@@ -80,7 +80,7 @@ export class TeamsController {
     @Param('teamId', ParseIntPipe) teamId: number, 
     @Param('memberId', ParseIntPipe) memberId: number, 
     @Body() updateTeamMemberDto: UpdateTeamMemberDto,
-    @Request() req
+    @Request() req: any
   ): Promise<TeamMember> {
     const userId = req.user.id;
     const member = this.teamsService.updateMember(teamId, memberId, updateTeamMemberDto, userId);
@@ -90,7 +90,7 @@ export class TeamsController {
   @Delete(':teamId')
   removeTeam(
     @Param('teamId', ParseIntPipe) teamId: number,
-    @Request() req
+    @Request() req: any
   ): Promise<void> {
     const userId = req.user.id;
     const team = this.teamsService.removeTeam(teamId, userId);
@@ -101,7 +101,7 @@ export class TeamsController {
   removeMember(
     @Param('teamId', ParseIntPipe) teamId: number, 
     @Param('memberId', ParseIntPipe) memberId: number,
-    @Request() req
+    @Request() req: any
   ): Promise<void> {
     const userId = req.user.id;
     const member = this.teamsService.removeMember(teamId, memberId, userId);

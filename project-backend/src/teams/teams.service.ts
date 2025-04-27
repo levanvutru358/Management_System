@@ -11,6 +11,7 @@ import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { Injectable } from '@nestjs/common/decorators/core';
 import { TeamResponseDto } from './dto/team-response.dto';
+import { mapTeamResponse } from './team.mapper';
 
 @Injectable()
 export class TeamsService {
@@ -73,28 +74,7 @@ export class TeamsService {
       relations: ['createdBy', 'teamMembers', 'teamMembers.user'],
     });
     if (!finalTeam) throw new NotFoundException('Team not found'); 
-    const teamResponseDto: TeamResponseDto = {
-      id: finalTeam.id,
-      name: finalTeam.name,
-      description: finalTeam.description,
-      teamMembers: finalTeam.teamMembers.map(member => ({
-        id: member.id,
-        role: member.role,
-        user: {
-          id: member.user.id,
-          name: member.user.name,
-          role: member.user.role,
-          email: member.user.email, 
-        },
-      })),
-      createdBy: {
-        id: finalTeam.createdBy.id,
-        name: finalTeam.createdBy.name,
-        role: finalTeam.createdBy.role,
-        email: finalTeam.createdBy.email, 
-      },
-      createdAt: finalTeam.createdAt,
-    };
+    const teamResponseDto = mapTeamResponse(finalTeam);
     return teamResponseDto;
   }
 
@@ -166,7 +146,7 @@ export class TeamsService {
     return member;
   }
 
-  async updateTeam(teamId: number, updateTeamDto: UpdateTeamDto, userId: number): Promise<Team> {
+  async updateTeam(teamId: number, updateTeamDto: UpdateTeamDto, userId: number): Promise<TeamResponseDto> {
     const team = await this.teamRepository.findOne({ where: { id: teamId }, relations: ['createdBy']});
     if (!team) throw new NotFoundException('Team not found');
 
@@ -182,7 +162,8 @@ export class TeamsService {
     }
 
     const updatedTeam = await this.teamRepository.save(team);
-    return updatedTeam;
+    const teamResponseDto = mapTeamResponse(updatedTeam);
+    return teamResponseDto;
   }
 
   async updateMember(teamId: number, memberId: number, updateTeamMemberDto: UpdateTeamMemberDto, userId: number): Promise<TeamMember> {
