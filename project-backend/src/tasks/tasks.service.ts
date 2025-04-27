@@ -31,7 +31,8 @@ export class TasksService {
   ) {}
 
   async create(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
-    const { subtasks, attachments, startDate, dueDate, ...taskData } = createTaskDto;
+    const { subtasks, attachments, startDate, dueDate, ...taskData } =
+      createTaskDto;
     const task = this.tasksRepository.create({
       ...taskData,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -73,36 +74,54 @@ export class TasksService {
     return task;
   }
 
-  async update(id: number, updateTaskDto: UpdateTaskDto, user: User): Promise<Task> {
+  async update(
+    id: number,
+    updateTaskDto: UpdateTaskDto,
+    user: User,
+  ): Promise<Task> {
     const task = await this.findOne(id);
     this.checkPermission(task, user, true);
 
-    const { subtasks, attachments, startDate, dueDate, ...taskData } = updateTaskDto;
+    const { subtasks, attachments, startDate, dueDate, ...taskData } =
+      updateTaskDto;
+
+    // Update task fields
     Object.assign(task, {
       ...taskData,
       startDate: startDate ? new Date(startDate) : task.startDate,
       dueDate: dueDate ? new Date(dueDate) : task.dueDate,
     });
 
+    // Save updated task
     await this.tasksRepository.save(task);
 
+    // Handle subtasks
     if (Array.isArray(subtasks)) {
-      await this.subtasksRepository.delete({ task: { id } });
-      await this.saveSubtasks(subtasks, task);
+      await this.subtasksRepository.delete({ task: { id } }); // Remove old subtasks
+      await this.saveSubtasks(subtasks, task); // Add new subtasks
     }
 
+    // Handle attachments
     if (Array.isArray(attachments)) {
-      await this.attachmentsRepository.delete({ task: { id } });
-      await this.saveAttachments(attachments, task);
+      await this.attachmentsRepository.delete({ task: { id } }); // Remove old attachments
+      await this.saveAttachments(attachments, task); // Add new attachments
     }
 
-    return this.findOne(id);
+    return this.findOne(id); // Return the updated task with relations
   }
 
   async remove(id: number, user: User): Promise<{ message: string }> {
     const task = await this.findOne(id);
     this.checkPermission(task, user, true);
+    // Xóa các subtasks liên quan
+    await this.subtasksRepository.delete({ task: { id } });
+    // Xóa các attachments liên quan
+    await this.attachmentsRepository.delete({ task: { id } });
+    // Xóa các comments liên quan
+    await this.commentsRepository.delete({ task: { id } });
+    // Xóa task chính
     await this.tasksRepository.delete(id);
+
     return { message: `Task with ID ${id} deleted successfully` };
   }
 
@@ -110,9 +129,12 @@ export class TasksService {
     return this.tasksRepository
       .createQueryBuilder('task')
       .where('task.assignedUserId = :userId', { userId })
-      .andWhere('(task.title LIKE :keyword OR task.description LIKE :keyword)', {
-        keyword: `%${keyword}%`,
-      })
+      .andWhere(
+        '(task.title LIKE :keyword OR task.description LIKE :keyword)',
+        {
+          keyword: `%${keyword}%`,
+        },
+      )
       .leftJoinAndSelect('task.user', 'user')
       .leftJoinAndSelect('task.subtasks', 'subtasks')
       .leftJoinAndSelect('task.attachments', 'attachments')
@@ -139,18 +161,30 @@ export class TasksService {
     });
   }
 
-  async assignTask(id: number, assignTaskDto: AssignTaskDto, user: User): Promise<Task> {
+  async assignTask(
+    id: number,
+    assignTaskDto: AssignTaskDto,
+    user: User,
+  ): Promise<Task> {
     const task = await this.findOne(id);
     this.checkPermission(task, user, true);
-    const assignedUser = await this.usersService.findById(assignTaskDto.assignedUserId);
+    const assignedUser = await this.usersService.findById(
+      assignTaskDto.assignedUserId,
+    );
     if (!assignedUser) {
-      throw new NotFoundException(`User with ID ${assignTaskDto.assignedUserId} not found`);
+      throw new NotFoundException(
+        `User with ID ${assignTaskDto.assignedUserId} not found`,
+      );
     }
     task.assignedUserId = assignedUser.id;
     return this.tasksRepository.save(task);
   }
 
-  async addComment(taskId: number, userId: number, content: string): Promise<Comment> {
+  async addComment(
+    taskId: number,
+    userId: number,
+    content: string,
+  ): Promise<Comment> {
     const task = await this.findOne(taskId);
     const user = await this.usersService.findById(userId);
     if (!user) {
@@ -184,7 +218,8 @@ export class TasksService {
       inProgress: tasks.filter((t) => t.status === 'InProgress').length,
       done: tasks.filter((t) => t.status === 'Done').length,
       overdue: tasks.filter(
-        (t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done',
+        (t) =>
+          t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done',
       ).length,
     };
   }
@@ -194,16 +229,21 @@ export class TasksService {
     const isAssigned = task.assignedUserId === user.id;
 
     if (!isOwner && !isAssigned) {
-      throw new ForbiddenException('You do not have permission to access this task');
+      throw new ForbiddenException(
+        'You do not have permission to access this task',
+      );
     }
 
     if (requireEdit && !isOwner) {
-      throw new ForbiddenException('You do not have permission to edit this task');
+      throw new ForbiddenException(
+        'You do not have permission to edit this task',
+      );
     }
   }
 
   private async saveSubtasks(subtasks: SubtaskInputDto[], task: Task) {
     if (!subtasks.length) return;
+
     const entities = subtasks.map((item) =>
       this.subtasksRepository.create({
         title: item.title,
@@ -211,11 +251,13 @@ export class TasksService {
         task,
       }),
     );
+
     await this.subtasksRepository.save(entities);
   }
 
   private async saveAttachments(attachments: AttachmentInputDto[], task: Task) {
     if (!attachments.length) return;
+
     const entities = attachments.map((file) =>
       this.attachmentsRepository.create({
         filename: file.filename,
@@ -223,6 +265,7 @@ export class TasksService {
         task,
       }),
     );
+
     await this.attachmentsRepository.save(entities);
   }
 }

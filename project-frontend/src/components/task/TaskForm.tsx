@@ -20,9 +20,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  deadline: z.string(),
-  status: z.enum(["Todo", "Doing", "Done", "Archived"]),
-  priority: z.enum(["Low", "Medium", "High"]),
+  dueDate: z.string(),
+  status: z.enum(["Todo", "InProgress", "Done"]),
+  priority: z.enum(["low", "medium", "high"]),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -53,16 +53,16 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
       ? {
           title: task.title,
           description: task.description ?? "",
-          deadline: task.deadline ?? new Date().toISOString().split("T")[0],
+          dueDate: task.dueDate ?? new Date().toISOString().split("T")[0],
           status: task.status ?? "Todo",
-          priority: task.priority ?? "Medium",
+          priority: task.priority ?? "medium",
         }
       : {
           title: "",
           description: "",
-          deadline: new Date().toISOString().split("T")[0],
+          dueDate: new Date().toISOString().split("T")[0],
           status: "Todo",
-          priority: "Medium",
+          priority: "medium",
         },
   });
 
@@ -151,9 +151,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         margin="normal"
       />
       <TextField
-        label="Deadline"
+        label="Due Date"
         type="date"
-        {...register("deadline")}
+        {...register("dueDate")}
         InputLabelProps={{ shrink: true }}
         fullWidth
         margin="normal"
@@ -167,9 +167,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         margin="normal"
       >
         <MenuItem value="Todo">To Do</MenuItem>
-        <MenuItem value="Doing">Doing</MenuItem>
+        <MenuItem value="InProgress">In Progress</MenuItem>
         <MenuItem value="Done">Done</MenuItem>
-        <MenuItem value="Archived">Archived</MenuItem>
       </TextField>
 
       <TextField
@@ -179,9 +178,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
         fullWidth
         margin="normal"
       >
-        <MenuItem value="Low">Low</MenuItem>
-        <MenuItem value="Medium">Medium</MenuItem>
-        <MenuItem value="High">High</MenuItem>
+        <MenuItem value="low">Low</MenuItem>
+        <MenuItem value="medium">Medium</MenuItem>
+        <MenuItem value="high">High</MenuItem>
       </TextField>
 
       {/* File Upload */}

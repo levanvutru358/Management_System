@@ -1,4 +1,3 @@
-// frontend/src/components/layout/Sidebar.tsx
 import React from "react";
 import {
   Drawer,
@@ -8,10 +7,17 @@ import {
   ListItemIcon,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { Assignment, Assessment, Dashboard, Person } from "@mui/icons-material";
+import {
+  Assignment,
+  Assessment,
+  Dashboard,
+  Person,
+  CalendarToday,
+  Notifications as NotificationsIcon,
+  AdminPanelSettings,
+} from "@mui/icons-material";
 import { getCurrentUser } from "../../services/authService";
 
-// ✅ LinkProps dùng cho SidebarLink
 interface LinkProps {
   to: string;
   children: React.ReactNode;
@@ -37,7 +43,7 @@ const Sidebar: React.FC = () => {
         [`& .MuiDrawer-paper`]: {
           width: 200,
           boxSizing: "border-box",
-          mt: "64px", // dưới Header
+          mt: "64px",
           zIndex: 1000,
         },
       }}
@@ -52,6 +58,17 @@ const Sidebar: React.FC = () => {
         {user?.role === "admin" && (
           <SidebarLink to="/reports" icon={<Assessment />}>
             Reports
+          </SidebarLink>
+        )}
+        <SidebarLink to="/calendar" icon={<CalendarToday />}>
+          Calendar
+        </SidebarLink>
+        <SidebarLink to="/notifications" icon={<NotificationsIcon />}>
+          Notifications
+        </SidebarLink>
+        {user?.role === "admin" && (
+          <SidebarLink to="/admin" icon={<AdminPanelSettings />}>
+            Admin
           </SidebarLink>
         )}
         <SidebarLink to="/profile" icon={<Person />}>

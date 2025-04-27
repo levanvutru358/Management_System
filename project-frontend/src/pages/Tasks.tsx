@@ -1,24 +1,24 @@
-// frontend/src/pages/Tasks.tsx
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, Container } from '@mui/material';
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer'; // Thêm Footer
-import TaskForm from '../components/task/TaskForm';
-import TaskCard from '../components/task/TaskCard';
-import { Task, getTasks, deleteTask } from '../services/taskService';
+import React, { useEffect, useState } from "react";
+import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, Container, TextField } from "@mui/material";
+import Header from "../components/layout/Header";
+import Sidebar from "../components/layout/Sidebar";
+import Footer from "../components/layout/Footer";
+import TaskForm from "../components/task/TaskForm";
+import TaskCard from "../components/task/TaskCard";
+import { Task, getTasks, deleteTask, searchTasks } from "../services/taskService";
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (keyword: string = "") => {
     try {
-      const tasksData = await getTasks();
+      const tasksData = keyword ? await searchTasks(keyword) : await getTasks();
       setTasks(tasksData);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error("Error fetching tasks:", error);
     }
   };
 
@@ -26,12 +26,16 @@ const Tasks: React.FC = () => {
     fetchTasks();
   }, []);
 
+  const handleSearch = () => {
+    fetchTasks(searchKeyword);
+  };
+
   const handleDelete = async (id: number) => {
     try {
       await deleteTask(id);
-      fetchTasks();
+      fetchTasks(searchKeyword);
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
     }
   };
 
@@ -51,20 +55,31 @@ const Tasks: React.FC = () => {
   };
 
   const handleTaskUpdated = () => {
-    fetchTasks();
+    fetchTasks(searchKeyword);
     handleClose();
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Header />
-      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+      <Box sx={{ display: "flex", flexGrow: 1 }}>
         <Sidebar />
-        <Container sx={{ ml: '5px', mt: 2 }}>
+        <Container sx={{ ml: "5px", mt: 2 }}>
           <Typography variant="h4">Tasks</Typography>
-          <Button variant="contained" onClick={handleAdd} sx={{ mb: 1 }}>
-            Add Task
-          </Button>
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+            <TextField
+              label="Search Tasks"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              fullWidth
+            />
+            <Button variant="contained" onClick={handleSearch}>
+              Search
+            </Button>
+            <Button variant="contained" onClick={handleAdd}>
+              Add Task
+            </Button>
+          </Box>
           <Box>
             {tasks.map((task) => (
               <TaskCard
@@ -72,12 +87,12 @@ const Tasks: React.FC = () => {
                 task={task}
                 onEdit={() => handleEdit(task)}
                 onDelete={() => handleDelete(task.id)}
-                onAssign={() => fetchTasks()}
+                onAssign={() => fetchTasks(searchKeyword)}
               />
             ))}
           </Box>
           <Dialog open={open} onClose={handleClose}>
-            <DialogTitle>{editingTask ? 'Edit Task' : 'Add Task'}</DialogTitle>
+            <DialogTitle>{editingTask ? "Edit Task" : "Add Task"}</DialogTitle>
             <DialogContent>
               <TaskForm task={editingTask} onSubmit={handleTaskUpdated} />
             </DialogContent>
