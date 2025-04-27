@@ -10,12 +10,17 @@ import { ReportsModule } from './reports/reports.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { AdminModule } from './admin/admin.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { ActivityLogsModule } from './activity-logs/activity-logs.module';
+import { TeamsModule } from './teams/teams.module';
 import { AppController } from './app.controller';
 import { User } from './users/entities/user.entity';
 import { Task } from './tasks/entities/task.entity';
 import { Event } from './calendar/entities/event.entity';
 import { Notification } from './notifications/entities/notification.entity';
 import { Comment } from './tasks/entities/comment.entity';
+import { ActivityLog } from './activity-logs/entities/activity-log.entity';
+import { Team } from './teams/entities/team.entity';
+import { TeamMember } from './teams/entities/team-member.entity';
 
 @Module({
   imports: [
@@ -33,8 +38,8 @@ import { Comment } from './tasks/entities/comment.entity';
       username: 'tru123',
       password: 'tru12345',
       database: 'task_manager',
-      entities: [User, Task, Event, Comment, Notification],
-      synchronize: true, // Cảnh báo: Tắt synchronize trong production
+      entities: [User, Task, Event, Comment, Notification, ActivityLog, Team, TeamMember],
+      synchronize: true, 
       timezone: '+07:00',
     }),
     AuthModule,
@@ -45,6 +50,8 @@ import { Comment } from './tasks/entities/comment.entity';
     IntegrationsModule,
     AdminModule,
     CalendarModule,
+    ActivityLogsModule,
+    TeamsModule,
   ],
   controllers: [AppController],
 })

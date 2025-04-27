@@ -1,8 +1,9 @@
-import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, OneToMany, ManyToOne } from 'typeorm';
 import { Event } from '../../calendar/entities/event.entity';
 import { Notification } from '../../notifications/entities/notification.entity';
 import { Task } from '../../tasks/entities/task.entity';
 import { Comment } from '../../tasks/entities/comment.entity';
+import { ActivityLog } from 'src/activity-logs/entities/activity-log.entity';
 
 @Entity()
 export class User {
@@ -44,4 +45,10 @@ export class User {
 
   @OneToMany(() => Comment, (comment) => comment.user)
   comments: Comment[];
+
+  @ManyToOne(() => User, (user) => user.teams, { nullable: true })
+  teams: any;
+
+  @OneToMany(() => ActivityLog, (activityLogs) => activityLogs.user)
+  activityLogs: ActivityLog[];
 }

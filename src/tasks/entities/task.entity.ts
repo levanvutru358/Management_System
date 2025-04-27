@@ -1,11 +1,12 @@
-// src/tasks/entities/task.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne } from 'typeorm';
 import { Comment } from './comment.entity';
 import { User } from '../../users/entities/user.entity';
 import { Event } from '../../calendar/entities/event.entity';
+import { ActivityLog } from '../../activity-logs/entities/activity-log.entity'; // Thêm import
 
 @Entity()
 export class Task {
+  [x: string]: any;
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -50,4 +51,9 @@ export class Task {
     cascade: true,
   })
   events: Event[];
+
+  @OneToMany(() => ActivityLog, (activityLog) => activityLog.task, { 
+    cascade: true,
+  })
+  activityLogs: ActivityLog[];
 }

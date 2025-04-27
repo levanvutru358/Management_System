@@ -1,26 +1,52 @@
-// import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
-// import { User } from '../../users/entities/user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Task } from '../../tasks/entities/task.entity';
+import { User } from '../../users/entities/user.entity';
+import { Team } from '../../teams/entities/team.entity';
 
-// @Entity()
-// export class ActivityLog {
-//   @PrimaryGeneratedColumn()
-//   id: number;
+export enum ActivityAction {
+  CREATED = 'created',
+  UPDATED = 'updated',
+  DELETED = 'deleted',
+  ASSIGNED = "ASSIGNED",
+  COMMENTED = "COMMENTED",
+  TEAM_CREATED = "TEAM_CREATED",
+}
 
-//   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
-//   user: User;
+@Entity('activity_log')
+export class ActivityLog {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-//   @Column()
-//   action: string; // 'create', 'update', 'delete'
+  @Column({
+    type: 'enum',
+    enum: ActivityAction,
+  })
+  action: ActivityAction;
 
-//   @Column()
-//   entityType: string; // 'task', 'event'
+  @Column({ nullable: true })
+  taskId: number;
 
-//   @Column()
-//   entityId: number; // Task/event ID
+  @ManyToOne(() => Task, (task) => task.activityLogs, { nullable: true })
+  @JoinColumn({ name: 'taskId' })
+  task: Task;
 
-//   @Column({ type: 'jsonb', nullable: true })
-//   details: any; // e.g., { title: "New Task" }
+  @Column({ nullable: true })
+  teamId: number;
 
-//   @CreateDateColumn()
-//   createdAt: Date;
-// }
+  @ManyToOne(() => Team, (team) => team.activityLogs, { nullable: true })
+  @JoinColumn({ name: 'teamId' })
+  team: Team;
+
+  @Column()
+  userId: number;
+
+  @ManyToOne(() => User, (user) => user.activityLogs, { nullable: false })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @Column()
+  details: string;
+}

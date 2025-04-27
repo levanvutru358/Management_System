@@ -1,6 +1,6 @@
 import { IsInt } from 'class-validator';
 
 export class AssignTaskDto {
-  @IsInt()
+  @IsInt({ message: 'assignedUserId must be an integer number' })
   assignedUserId: number;
 }

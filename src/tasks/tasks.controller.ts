@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -24,22 +24,35 @@ export class TasksController {
     return this.tasksService.findAll(user);
   }
 
+  @Get('system')
+  @UseGuards(TasksPermissionsGuard)
+  @SetMetadata('requireAdmin', true) // Chỉ admin mới được truy cập
+  findAllSystem() {
+    return this.tasksService.findAllSystem();
+  }
+
+  @Get(':id')
+  @UseGuards(TasksPermissionsGuard)
+  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: User) {
+    return this.tasksService.findOne(id, user);
+  }
+
   @Put(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateTaskDto: UpdateTaskDto,
     @GetUser() user: User,
   ) {
-    return this.tasksService.update(+id, updateTaskDto, user);
+    return this.tasksService.update(id, updateTaskDto, user);
   }
 
   @Delete(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-  remove(@Param('id') id: number, @GetUser() user: User) {
-    return this.tasksService.remove(+id, user);
+  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: User) {
+    return this.tasksService.remove(id, user);
   }
 
   @Get('search')
@@ -50,28 +63,42 @@ export class TasksController {
   @Post(':id/assign')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
-  assign(@Param('id') id: string, @Body() assignTaskDto: AssignTaskDto) {
-    return this.tasksService.assignTask(+id, assignTaskDto);
+  assign(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() assignTaskDto: AssignTaskDto,
+    @GetUser() user: User,
+  ) {
+    return this.tasksService.assignTask(id, assignTaskDto, user);
   }
 
   @Post(':id/comments')
   @UseGuards(TasksPermissionsGuard)
   addComment(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body('content') content: string,
     @GetUser() user: User,
   ) {
-    return this.tasksService.addComment(+id, user.id, content);
+    return this.tasksService.addComment(id, user.id, content);
   }
 
   @Get(':id/comments')
   @UseGuards(TasksPermissionsGuard)
-  getComments(@Param('id') id: string) {
-    return this.tasksService.getComments(+id);
+  getComments(@Param('id', ParseIntPipe) id: number, @GetUser() user: User) {
+    return this.tasksService.getComments(id, user);
   }
 
   @Get('stats')
   getStats(@GetUser() user: User) {
     return this.tasksService.getStats(user.id);
+  }
+
+  @Get('due-soon')
+  findAllDueSoon() {
+    return this.tasksService.findAllDueSoon();
+  }
+
+  @Get('with-deadline')
+  findAllWithDeadline() {
+    return this.tasksService.findAllWithDeadline();
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { GetUser } from '../auth/get-user.decorator';
@@ -15,7 +15,7 @@ export class ReportsController {
   }
 
   @Get('history/:taskId')
-  getHistory(@Param('taskId') taskId: string) {
-    return this.reportsService.getHistory(+taskId);
+  getHistory(@Param('taskId', ParseIntPipe) taskId: number, @GetUser() user: User) {
+    return this.reportsService.getHistory(taskId, user); // Truyền user vào getHistory
   }
 }

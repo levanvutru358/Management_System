@@ -14,8 +14,8 @@ export class TasksPermissionsGuard implements CanActivate {
     const user = request.user; // Lấy từ JwtAuthGuard
     const taskId = +request.params.id; // Lấy ID task từ param
 
-    // Lấy task từ database
-    const task = await this.tasksService.findOne(taskId);
+    // Lấy task từ database, truyền user để kiểm tra quyền truy cập
+    const task = await this.tasksService.findOne(taskId, user);
     if (!task) {
       throw new ForbiddenException('Task not found');
     }
@@ -24,7 +24,7 @@ export class TasksPermissionsGuard implements CanActivate {
     const requireEdit = this.reflector.get<boolean>('requireEdit', context.getHandler());
 
     // Kiểm tra quyền truy cập
-    this.tasksService.checkPermission(task, user.id, requireEdit);
+    this.tasksService.checkPermission(task, user, requireEdit); // Truyền user (object) thay vì user.id
 
     return true; // Nếu không throw exception, tức là có quyền
   }
