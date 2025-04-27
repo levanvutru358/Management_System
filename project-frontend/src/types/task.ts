@@ -1,4 +1,3 @@
-// types/Task.ts
 export interface Subtask {
   id: number;
   title: string;
@@ -16,25 +15,26 @@ export interface Attachment {
   uploadedAt?: string;
 }
 
+export interface Comment {
+  id: number;
+  content: string;
+  createdAt: string;
+  updatedAt?: string; // Thêm updatedAt từ backend
+  userId: number;
+  taskId: number;
+}
+
 export interface Task {
   id: number;
   title: string;
   description?: string;
-  status?: "Todo" | "Doing" | "Done" | "Archived";
-  priority?: "Low" | "Medium" | "High";
-  checklist?: Subtask[];
+  status: "Todo" | "InProgress" | "Done";
+  priority: "low" | "medium" | "high";
+  dueDate?: string;
+  assignedUserId?: number;
+  subtasks?: Subtask[];
   attachments?: Attachment[];
-  startDate?: string;
-  deadline?: string; // 🔄 Đổi từ `dueDate` thành `deadline`
-  assignedTo?: number; // 🔄 Đổi từ `assignedUserId` => `assignedTo`
-  listId?: number;
+  comments?: Comment[];
   createdAt?: string;
   updatedAt?: string;
-  subtasks?: Subtask[];
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
 }

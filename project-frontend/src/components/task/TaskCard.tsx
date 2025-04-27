@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -8,9 +8,12 @@ import {
   List,
   ListItem,
   ListItemText,
+  TextField,
 } from "@mui/material";
-import { Task } from "../../services/taskService";
+import { Task, getTaskComments, addTaskComment } from "../../services/taskService";
+import { Comment } from "../../types/task";
 import AssignTaskForm from "./AssignTaskForm";
+import api from "../../services/api";
 
 interface TaskCardProps {
   task: Task;
@@ -26,6 +29,58 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onAssign,
 }) => {
   const [openAssign, setOpenAssign] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const commentsData = await getTaskComments(task.id);
+        // Đảm bảo commentsData là một mảng và khớp với kiểu Comment
+        if (Array.isArray(commentsData)) {
+          setComments(commentsData);
+        } else {
+          console.error("Invalid comments data:", commentsData);
+          setComments([]);
+        }
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+        setComments([]);
+      }
+    };
+    fetchComments();
+  }, [task.id]);
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    try {
+      const addedComment = await addTaskComment(task.id, newComment);
+      setComments((prevComments) => [...prevComments, addedComment]);
+      setNewComment("");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+
+  const syncWithGoogleCalendar = async () => {
+    try {
+      await api.post(`/integrations/calendar/${task.id}`);
+      alert("Task synced with Google Calendar");
+    } catch (error) {
+      console.error("Error syncing with Google Calendar:", error);
+      alert("Failed to sync with Google Calendar");
+    }
+  };
+
+  const sendEmailReminder = async () => {
+    try {
+      await api.post(`/integrations/email/${task.id}`);
+      alert("Email reminder sent");
+    } catch (error) {
+      console.error("Error sending email reminder:", error);
+      alert("Failed to send email reminder");
+    }
+  };
 
   const handleOpenAssign = () => setOpenAssign(true);
   const handleCloseAssign = () => setOpenAssign(false);
@@ -38,21 +93,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <CardContent>
           <Typography variant="h6">{task.title}</Typography>
           <Typography variant="body2">{task.description}</Typography>
-          <Typography variant="body2">Deadline: {task.deadline}</Typography>
+          <Typography variant="body2">Due Date: {task.dueDate}</Typography>
           <Typography variant="body2">Status: {task.status}</Typography>
           <Typography variant="body2">Priority: {task.priority}</Typography>
           <Typography variant="body2">
-            Assigned to:{" "}
-            {task.assignedTo ? `User ID ${task.assignedTo}` : "Not assigned"}
+            Assigned to: {task.assignedUserId ? `User ID ${task.assignedUserId}` : "Not assigned"}
           </Typography>
 
-          {/* Checklist - hiển thị dạng chấm tròn */}
+          {/* Checklist */}
           {subtasks.length > 0 && (
             <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: "bold", mb: 1 }}
-              >
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
                 Checklist
               </Typography>
               <ul style={{ paddingLeft: "1.2em", margin: 0 }}>
@@ -61,9 +112,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     <Typography
                       variant="body2"
                       sx={{
-                        textDecoration: subtask.completed
-                          ? "line-through"
-                          : "none",
+                        textDecoration: subtask.completed ? "line-through" : "none",
                         color: subtask.completed ? "gray" : "inherit",
                       }}
                     >
@@ -78,10 +127,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           {/* Attachments */}
           {Array.isArray(task.attachments) && task.attachments.length > 0 && (
             <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: "bold", mb: 1 }}
-              >
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
                 Attachments
               </Typography>
               <List dense>
@@ -108,27 +154,58 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </Box>
           )}
 
+          {/* Comments */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+              Comments
+            </Typography>
+            <List dense>
+              {comments.map((comment) => (
+                <ListItem key={comment.id}>
+                  <ListItemText
+                    primary={comment.content}
+                    secondary={
+                      comment.userId && comment.createdAt
+                        ? `User ID ${comment.userId} - ${new Date(comment.createdAt).toLocaleString()}`
+                        : "Unknown user - Unknown date"
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+            <TextField
+              label="Add a comment"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              fullWidth
+              margin="normal"
+            />
+            <Button onClick={handleAddComment} variant="contained" sx={{ mt: 1 }}>
+              Add Comment
+            </Button>
+          </Box>
+
           {/* Actions */}
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" onClick={onEdit} sx={{ mr: 1 }}>
               Edit
             </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={onDelete}
-              sx={{ mr: 1 }}
-            >
+            <Button variant="outlined" color="error" onClick={onDelete} sx={{ mr: 1 }}>
               Delete
             </Button>
-            <Button variant="outlined" onClick={handleOpenAssign}>
+            <Button variant="outlined" onClick={handleOpenAssign} sx={{ mr: 1 }}>
               Assign
+            </Button>
+            <Button variant="outlined" onClick={syncWithGoogleCalendar} sx={{ mr: 1 }}>
+              Sync with Google Calendar
+            </Button>
+            <Button variant="outlined" onClick={sendEmailReminder}>
+              Send Email Reminder
             </Button>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Assign Modal */}
       <AssignTaskForm
         taskId={task.id}
         open={openAssign}

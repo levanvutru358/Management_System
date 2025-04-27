@@ -1,8 +1,8 @@
 export interface User {
-    id: number;
-    email: string;
-    name: string;
-    avatar?: string;
-    role: string;
-    isActive: boolean;
-  }
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  role: "admin" | "user";
+  isActive: boolean;
+}
