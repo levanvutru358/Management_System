@@ -1,6 +1,9 @@
+// src/admin/admin.service.ts
 import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { TasksService } from '../tasks/tasks.service';
+import { User } from '../users/entities/user.entity';
+import { Task } from 'src/tasks/entities/task.entity';
 
 @Injectable()
 export class AdminService {
@@ -9,24 +12,23 @@ export class AdminService {
     private readonly tasksService: TasksService,
   ) {}
 
-  async getAllUsers() {
+  async getAllUsers(): Promise<User[]> {
     return this.usersService.findAll();
   }
 
-  async lockUser(id: number) {
+  async lockUser(id: number): Promise<User> {
     return this.usersService.updateStatus(id, false);
   }
 
-  async unlockUser(id: number) {
+  async unlockUser(id: number): Promise<User> {
     return this.usersService.updateStatus(id, true);
   }
 
-  async getAllTasks() {
+  async getAllTasks(): Promise<Task[]> {
     return this.tasksService.findAllSystem();
   }
 
-  async deleteTask(id: number) {
-    const fakeAdminUser = { id: 0, role: 'admin' }; // hoặc lấy user admin thực tế nếu có
-    return this.tasksService.remove(id, fakeAdminUser);
+  async deleteTask(id: number, user: User): Promise<void> {
+    await this.tasksService.remove(id, user);
   }
 }

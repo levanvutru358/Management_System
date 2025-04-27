@@ -1,4 +1,3 @@
-// subtask.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Task } from './task.entity';
 

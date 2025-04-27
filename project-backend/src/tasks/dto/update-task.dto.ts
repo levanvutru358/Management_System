@@ -24,6 +24,10 @@ export class UpdateTaskDto {
   priority?: 'low' | 'medium' | 'high';
 
   @IsOptional()
+  @IsEnum(['Todo', 'InProgress', 'Done'])
+  status?: 'Todo' | 'InProgress' | 'Done';
+
+  @IsOptional()
   @IsDateString()
   startDate?: string;
 
@@ -45,5 +49,5 @@ export class UpdateTaskDto {
 
   @IsOptional()
   @IsNumber()
-  userId?: number;
+  assignedUserId?: number;
 }

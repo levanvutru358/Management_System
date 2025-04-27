@@ -16,7 +16,6 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -41,26 +40,20 @@ export class TasksController {
 
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], {
-      storage,
-    }),
+    FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], { storage }),
   )
   async create(
     @GetUser() user: User,
     @Body() body: any,
     @UploadedFiles()
-    files: {
-      attachments?: Express.Multer.File[];
-    },
+    files: { attachments?: Express.Multer.File[] },
   ) {
     const { subtasks, ...taskData } = body;
 
     let parsedSubtasks: { title: string; completed?: boolean }[] = [];
-
     if (subtasks) {
       try {
-        parsedSubtasks =
-          typeof subtasks === 'string' ? JSON.parse(subtasks) : subtasks;
+        parsedSubtasks = typeof subtasks === 'string' ? JSON.parse(subtasks) : subtasks;
       } catch {
         throw new BadRequestException('Invalid subtasks JSON format');
       }
@@ -68,7 +61,7 @@ export class TasksController {
 
     const createTaskDto: CreateTaskDto = {
       ...taskData,
-      userId: user.id,
+      assignedUserId: taskData.assignedUserId || user.id,
       subtasks: parsedSubtasks,
       attachments: files?.attachments?.map((file) => ({
         filename: file.originalname,
@@ -76,33 +69,33 @@ export class TasksController {
       })),
     };
 
-    return this.tasksService.create(createTaskDto);
+    return this.tasksService.create(createTaskDto, user);
+  }
+
+  @Get()
+  findAll(@GetUser() user: User) {
+    return this.tasksService.findAll(user);
   }
 
   @Put(':id')
   @UseGuards(TasksPermissionsGuard)
   @SetMetadata('requireEdit', true)
   @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], {
-      storage,
-    }),
+    FileFieldsInterceptor([{ name: 'attachments', maxCount: 10 }], { storage }),
   )
   async update(
     @Param('id') id: string,
     @Body() body: any,
     @UploadedFiles()
-    files: {
-      attachments?: Express.Multer.File[];
-    },
+    files: { attachments?: Express.Multer.File[] },
+    @GetUser() user: User,
   ) {
     const { subtasks, ...taskData } = body;
 
     let parsedSubtasks: { title: string; completed?: boolean }[] = [];
-
     if (subtasks) {
       try {
-        parsedSubtasks =
-          typeof subtasks === 'string' ? JSON.parse(subtasks) : subtasks;
+        parsedSubtasks = typeof subtasks === 'string' ? JSON.parse(subtasks) : subtasks;
       } catch {
         throw new BadRequestException('Invalid subtasks JSON format');
       }
@@ -117,12 +110,7 @@ export class TasksController {
       })),
     };
 
-    return this.tasksService.update(+id, updateTaskDto);
-  }
-
-  @Get()
-  async findAll() {
-    return this.tasksService.findAll();
+    return this.tasksService.update(+id, updateTaskDto, user);
   }
 
   @Delete(':id')
