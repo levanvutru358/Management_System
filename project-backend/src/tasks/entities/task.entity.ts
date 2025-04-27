@@ -11,7 +11,7 @@ export class Task {
   title: string;
 
   @Column({ nullable: true })
-  dueDate: string;
+  dueDate: Date;
 
   @Column()
   status: string;

@@ -13,6 +13,7 @@ import { AssignTaskDto } from './dto/assign-task.dto';
 import { Subtask } from './entities/subtask.entity';
 import { Attachment } from './entities/attachment.entity';
 import { User } from 'src/users/entities/user.entity';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
@@ -25,6 +26,7 @@ export class TasksService {
     private subtasksRepository: Repository<Subtask>,
     @InjectRepository(Attachment)
     private attachmentsRepository: Repository<Attachment>,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<Task> {
@@ -34,6 +36,13 @@ export class TasksService {
 
     await this.saveSubtasks(subtasks ?? [], savedTask);
     await this.saveAttachments(attachments ?? [], savedTask);
+
+    if (savedTask.assignedUserId) {
+      await this.notificationsService.notifyTaskAssigned(
+        savedTask.title,
+        `${savedTask.assignedUserId}`
+      );
+    } 
 
     return this.findOne(savedTask.id);
   }
@@ -52,6 +61,13 @@ export class TasksService {
     if (Array.isArray(attachments)) {
       await this.attachmentsRepository.delete({ task: { id } });
       await this.saveAttachments(attachments ?? [], task);
+    }
+    
+    if (task.assignedUserId) {
+      await this.notificationsService.notifyTaskAssigned(
+        task.title,
+        `${task.assignedUserId}`
+      );
     }
 
     return this.findOne(id);
@@ -161,8 +177,13 @@ export class TasksService {
   ): Promise<Task> {
     const task = await this.findOne(id);
     this.checkPermission(task, user.id, true);
+
     task.assignedUserId = assignTaskDto.assignedUserId;
-    return this.tasksRepository.save(task);
+    const savedTask = await this.tasksRepository.save(task);
+
+    await this.notificationsService.notifyTaskAssigned(task.title, `${task.assignedUserId}`);
+
+    return savedTask;
   }
 
   async addComment(
@@ -209,5 +230,21 @@ export class TasksService {
         'You do not have permission to edit this task',
       );
     }
+  }
+
+  async checkTasksDueSoon() {
+    const tasks = await this.tasksRepository.find();
+    tasks.forEach((task) => {
+      const now = new Date();
+      const dueDate = new Date(task.dueDate);
+      const timeDifference = dueDate.getTime() - now.getTime();
+
+      if (timeDifference <= 24 * 60 * 60 * 1000 && task.assignedUserId) {
+        this.notificationsService.notifyTaskDueSoon(
+          task.id,
+          `${task.assignedUserId}`
+        );
+      }
+    });
   }
 }

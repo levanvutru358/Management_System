@@ -17,7 +17,9 @@ export class NotificationsGateway {
     
     @SubscribeMessage('join')
     handleJoin(@MessageBody() userId: string) {
-    this.server.socketsJoin(userId);
+        this.server.socketsJoin(userId);
+        const welcomeMessage = "Welcome to the task management system!";
+        this.sendNotification(userId, welcomeMessage);
     }
 
 }
