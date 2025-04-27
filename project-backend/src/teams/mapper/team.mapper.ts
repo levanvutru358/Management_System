@@ -1,5 +1,5 @@
-import { TeamResponseDto } from "./dto/team-response.dto"
-import { Team } from "./entities/team.entity"
+import { TeamResponseDto } from "../dto/team-response.dto"
+import { Team } from "../entities/team.entity"
 
 export function mapTeamResponse(team: Team): TeamResponseDto {
     return {

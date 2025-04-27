@@ -1,24 +1,23 @@
-import { ConnectedSocket, OnGatewayConnection, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { Socket } from "socket.io";
-import { Server } from "socket.io";
+import {
+    WebSocketGateway,
+    WebSocketServer,
+    SubscribeMessage,
+    MessageBody,
+} from '@nestjs/websockets';
+import { Server } from 'socket.io';
 
-@WebSocketGateway({ cors: true})
-export class NotificationsGateway implements OnGatewayConnection {
+@WebSocketGateway({ cors: { origin: '*'}})
+export class NotificationsGateway {
     @WebSocketServer()
     server: Server    
 
-    handleConnection(client: Socket, message: string) {
-        const userId = Number(client.handshake.query.userId)
-        if(userId && !isNaN(userId)) {
-            client.join(userId.toString())
-            const message = `User ${userId} connected and joined room`
-        } else {
-            const message = `Invalid or missing user ${userId} in query`
-        }
+    sendNotification(userId: string, message: string) {
+        this.server.to(userId).emit('notification', message);
     }
-
-    sendNotification(name: string, message: string) {
-        this.server.to(name).emit('Notification', {message})
+    
+    @SubscribeMessage('join')
+    handleJoin(@MessageBody() userId: string) {
+    this.server.socketsJoin(userId);
     }
 
 }

@@ -11,7 +11,9 @@ import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { Injectable } from '@nestjs/common/decorators/core';
 import { TeamResponseDto } from './dto/team-response.dto';
-import { mapTeamResponse } from './team.mapper';
+import { TeamMemberResponseDto } from './dto/team-member-response';
+import { mapTeamMemberResponse } from './mapper/team-member.mapper';
+import { mapTeamResponse } from './mapper/team.mapper';
 
 @Injectable()
 export class TeamsService {
@@ -114,36 +116,36 @@ export class TeamsService {
     return numberMember;
   }
 
-  async findAllMembers(teamId: number): Promise<TeamMember[]> {
+  async findAllMembers(teamId: number): Promise<TeamMemberResponseDto[]> {
     const members = await this.teamMemberRepository.find({
       where: { team: { id: teamId } },
-      relations: ['user', 'team'],
+      relations: ['user'],
     });
 
-    return members;
+    return members.map(member => mapTeamMemberResponse(member));
   }
 
-  async findAllTeams(): Promise<Team[]> {
-    const teams = await  this.teamRepository.find({ relations: ['createdBy', 'members'] });
-    return teams;
+  async findAllTeams(): Promise<TeamResponseDto[]> {
+    const teams = await  this.teamRepository.find({ relations: ['createdBy', 'teamMembers', 'teamMembers.user'] });
+    return teams.map(team => mapTeamResponse(team));
   }
 
-  async findOneTeam(id: number): Promise<Team | null> {
-    const team = await this.teamRepository.findOne({ where: { id }, relations: ['createdBy', 'members'] });
+  async findOneTeam(id: number): Promise<TeamResponseDto | null> {
+    const team = await this.teamRepository.findOne({ where: { id }, relations: ['createdBy', 'teamMembers', 'teamMembers.user'] });
     if (!team) throw new NotFoundException('Team not found');
-    return team;
+    return mapTeamResponse(team);
   }
 
-  async findOneMember(teamId: number, memberId: number): Promise<TeamMember | null> {
+  async findOneMember(teamId: number, memberId: number): Promise<TeamMemberResponseDto> {
     const member = await this.teamMemberRepository.findOne({
       where: {
         id: memberId,
         team: { id: teamId },
       },
-      relations: ['user', 'team'],
+      relations: ['user'],
     });
     if (!member) throw new NotFoundException('Member not found in this team');
-    return member;
+    return mapTeamMemberResponse(member);
   }
 
   async updateTeam(teamId: number, updateTeamDto: UpdateTeamDto, userId: number): Promise<TeamResponseDto> {
@@ -166,37 +168,30 @@ export class TeamsService {
     return teamResponseDto;
   }
 
-  async updateMember(teamId: number, memberId: number, updateTeamMemberDto: UpdateTeamMemberDto, userId: number): Promise<TeamMember> {
-    const teamMember = await this.teamMemberRepository.findOne(
-      { where: 
-        { 
-          team: { id: teamId }, 
-          user: { id: memberId } 
-        }, 
-        relations: ['team', 'team.createdBy']
-      }
-    );
-    if (!teamMember) throw new NotFoundException('Member not found');
-
-    const currentUser = await this.teamMemberRepository.findOne(
-      { 
-        where: 
-        { 
-          team: { id: teamId }, 
-          user: { id: memberId } 
-        }, 
-        relations: ['team', 'team.createdBy'] 
-      }
-    );
-    if (!currentUser || currentUser.role !== 'manager' && teamMember.team.createdBy.id !== userId) {
+  async updateMember(teamId: number, memberId: number, updateTeamMemberDto: UpdateTeamMemberDto, userId: number): Promise<TeamMemberResponseDto> {
+    const teamMember = await this.teamMemberRepository.findOne({
+      where: {
+        team: { id: teamId },
+        user: { id: memberId },
+      },
+      relations: ['team', 'team.createdBy'],
+    });
+  
+    if (!teamMember) {
+      throw new NotFoundException('Member not found');
+    }
+  
+    if (teamMember.role !== 'manager' && teamMember.team.createdBy.id !== userId) {
       throw new ForbiddenException('You are not allowed to update this team member');
     }
-
+  
     if (updateTeamMemberDto.role) {
       teamMember.role = updateTeamMemberDto.role;
     }
+  
     const updatedTeamMember = await this.teamMemberRepository.save(teamMember);
-    return updatedTeamMember;
+  
+    return mapTeamMemberResponse(updatedTeamMember);
   }
 
     

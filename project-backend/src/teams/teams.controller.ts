@@ -10,6 +10,7 @@ import { Body, Delete, Get, Param, Post, Put, Request } from '@nestjs/common/dec
 import { ParseIntPipe } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { TeamResponseDto } from './dto/team-response.dto';
+import { TeamMemberResponseDto } from './dto/team-member-response';
 
 @Controller('teams')
 @UseGuards(JwtAuthGuard)
@@ -17,24 +18,24 @@ export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Get()
-  findAllTeams(): Promise<Team[]> {
+  findAllTeams(): Promise<TeamResponseDto[]> {
     const teams = this.teamsService.findAllTeams();
     return teams;
   }
 
   @Get(':teamId')
-  findOneTeam(@Param('teamId', ParseIntPipe) teamId: number): Promise<Team | null> {
+  findOneTeam(@Param('teamId', ParseIntPipe) teamId: number): Promise<TeamResponseDto | null> {
     const team = this.teamsService.findOneTeam(teamId);
     return team;
   }
 
   @Get(':teamId/members')
-  async findAllMembers(@Param('teamId', ParseIntPipe) teamId: number): Promise<TeamMember[]> {
+  async findAllMembers(@Param('teamId', ParseIntPipe) teamId: number): Promise<TeamMemberResponseDto[]> {
     return this.teamsService.findAllMembers(teamId);
   }
 
   @Get(':teamId/members/:memberId')
-  findOneMember(@Param('teamId', ParseIntPipe) teamId: number, @Param('memberId', ParseIntPipe) memberId: number): Promise<TeamMember | null> {
+  findOneMember(@Param('teamId', ParseIntPipe) teamId: number, @Param('memberId', ParseIntPipe) memberId: number): Promise<TeamMemberResponseDto | null> {
     const member = this.teamsService.findOneMember(teamId, memberId);
     return member;
   }
@@ -81,7 +82,7 @@ export class TeamsController {
     @Param('memberId', ParseIntPipe) memberId: number, 
     @Body() updateTeamMemberDto: UpdateTeamMemberDto,
     @Request() req: any
-  ): Promise<TeamMember> {
+  ): Promise<TeamMemberResponseDto> {
     const userId = req.user.id;
     const member = this.teamsService.updateMember(teamId, memberId, updateTeamMemberDto, userId);
     return member;
